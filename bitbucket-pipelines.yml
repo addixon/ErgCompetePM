@@ -31,13 +31,11 @@ pipelines:
             artifacts:
               - linter-reports/**
     - step:
-        name: Zip and Push to Octopus
+        name: Pack and Push to Octopus
+        image: octopusdeploy/octo:6.17.3-alpine
         script:
-          - export SOLUTION_NAME=ErgCompetePM
-          - export VERSION=1.$BITBUCKET_BUILD_NUMBER
-          - export ZIP_FILE=$SOLUTION_NAME.$VERSION.zip
-          - apt-get update
-          - apt-get install zip -qq
+          - export OCTOPUS_SERVER = "https://adamdixon.octopus.app"
+          - export VERSION=1.0.$BITBUCKET_BUILD_NUMBER
           - cd publish
-          - zip -r $ZIP_FILE * -q
-          - curl -X POST https://cloud-perm.octopus.com/api/packages/raw -H "X-Octopus-ApiKey:$Octopus_ApiKey" -F "data=@$ZIP_FILE"
+          - octo pack --id $BITBUCKET_REPO_SLUG --version $VERSION --outFolder ./out --format zip
+          - octo push --package ./out/$BITBUCKET_REPO_SLUG.$VERSION.zip --server $OCTOPUS_SERVER --apiKey $Octopus_ApiKey
