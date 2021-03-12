@@ -38,6 +38,6 @@ pipelines:
           - export ZIP_FILE=$SOLUTION_NAME.$VERSION.zip
           - apt-get update
           - apt-get install zip -qq
-          - cd ./publish
+          - cd ../publish
           - zip -r $ZIP_FILE * -q
           - curl -X POST https://cloud-perm.octopus.com/api/packages/raw -H "X-Octopus-ApiKey:$Octopus_ApiKey" -F "data=@$ZIP_FILE"
