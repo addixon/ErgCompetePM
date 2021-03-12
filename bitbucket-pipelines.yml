@@ -2,16 +2,13 @@ image: mcr.microsoft.com/dotnet/sdk:5.0
 
 pipelines:
   default:
-    - step:
-        name: Set Up Environment
-        script:
-          - export SOLUTION_NAME=ErgCompetePM
     - parallel:
         - step:
             name: Build and Test
             caches:
               - dotnetcore
             script:
+              - export SOLUTION_NAME=ErgCompetePM
               - REPORTS_PATH=./test-reports/build_${BITBUCKET_BUILD_NUMBER}
               - dotnet restore
               - dotnet build --no-restore --configuration Release
@@ -23,11 +20,12 @@ pipelines:
             caches:
               - dotnetcore
             script:
+              - export SOLUTION_NAME=ErgCompetePM
               - export REPORTS_PATH=linter-reports
               - dotnet new tool-manifest
               - dotnet tool install JetBrains.ReSharper.GlobalTools
               - dotnet tool restore
-              - dotnet jb inspectcode $SOLUTION_NAME.sln --output="${REPORTS_PATH}/jb-${BITBUCKET_BUILD_NUMBER}.xml"
+              - dotnet jb inspectcode ${SOLUTION_NAME}.sln --output="${REPORTS_PATH}/jb-${BITBUCKET_BUILD_NUMBER}.xml"
             artifacts:
               - linter-reports/**
     - step:
@@ -35,6 +33,7 @@ pipelines:
         caches:
           - dotnetcore
         script:
+          - export SOLUTION_NAME=ErgCompetePM
           - export VERSION=1.$BITBUCKET_BUILD_NUMBER
           - export ZIP_FILE=$SOLUTION_NAME.$VERSION.zip
           - apt-get update
