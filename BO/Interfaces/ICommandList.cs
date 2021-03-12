@@ -11,8 +11,7 @@ namespace BO.Interfaces
         ushort ExpectedResponseSize { get; }
 
         void Reset();
-
-        void Add(ICommand command);
+        new void Add(ICommand command);
 
         void AddRange(IEnumerable<ICommand> commands);
 

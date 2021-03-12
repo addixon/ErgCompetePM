@@ -9,7 +9,7 @@ namespace BO
 
         public DateTime? LastCommunication { get; set; }
 
-        public PMData Data { get; set; }
+        public PMData? Data { get; set; }
 
         public PerformanceMonitor(PMProperties properties)
         {
@@ -19,6 +19,8 @@ namespace BO
 
         public PerformanceMonitor()
         {
+            // TODO: allow assignment
+            Properties = new PMProperties(null, null, null, null, null, null);
         }
     }
 }

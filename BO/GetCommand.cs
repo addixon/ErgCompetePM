@@ -30,7 +30,7 @@ namespace BO
 
         public abstract ushort? ResponseSize { get; }
 
-        public ushort Size => Data != null ? (ushort) (Data.Length + 1) : 1;
+        public ushort Size => (ushort)(Data != null ? (Data.Length + 1) : 1);
 
         public abstract bool IsProprietary { get; }
 

@@ -30,7 +30,7 @@ namespace BO.Commands
         {
             if (size == 3)
             {
-                Value = (Capabilities?) new Capabilities
+                Value = (Capabilities) new Capabilities
                 {
                     MaxRxFrame = (byte) responseReader.ReadByte(),
                     MaxTxFrame = (byte) responseReader.ReadByte(),
@@ -39,7 +39,7 @@ namespace BO.Commands
             }
             else if (size == 2)
             {
-                Value = (Capabilities?)new Capabilities();
+                Value = (Capabilities)new Capabilities();
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -48,7 +48,7 @@ namespace BO.Commands
             }
             else if (size == 11)
             {
-                Value = (Capabilities?)new Capabilities();
+                Value = (Capabilities)new Capabilities();
 
                 for (int i = 0; i < 11; i++)
                 {
