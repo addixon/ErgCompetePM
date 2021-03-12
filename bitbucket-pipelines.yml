@@ -27,7 +27,7 @@ pipelines:
               - dotnet new tool-manifest
               - dotnet tool install JetBrains.ReSharper.GlobalTools
               - dotnet tool restore
-              - dotnet jb inspectcode ${SOLUTION_NAME}.sln --output="${REPORTS_PATH}/jb-${BITBUCKET_BUILD_NUMBER}.xml"
+              - dotnet jb inspectcode $SOLUTION_NAME.sln --output="${REPORTS_PATH}/jb-${BITBUCKET_BUILD_NUMBER}.xml"
             artifacts:
               - linter-reports/**
     - step:
