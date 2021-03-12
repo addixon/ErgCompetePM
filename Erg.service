@@ -1,0 +1,22 @@
+[Unit]
+Description=ErgCompete Communication service
+
+[Service]
+# systemd will run this executable to start the service
+ExecStart=$(find "$PWD" -maxdepth 1 -type d -name "program*" | sort -V | tail -1)/ErgCompetePM
+# to query logs using journalctl, set a logical name here
+SyslogIdentifier=ErgCompete
+
+# Use your username to keep things simple.
+# If you pick a different user, make sure dotnet and all permissions are set correctly to run the app
+# To update permissions, use 'chown yourusername -R /srv/HelloWorld' to take ownership of the folder and files,
+#       Use 'chmod +x /srv/HelloWorld/HelloWorld' to allow execution of the executable file
+User=pi
+chmod +x $(find "$PWD" -maxdepth 1 -type d -name "program*" | sort -V | tail -1)/ErgCompetePM
+
+# This environment variable is necessary when dotnet isn't loaded for the specified user.
+# To figure out this value, run 'env | grep DOTNET_ROOT' when dotnet has been loaded into your shell.
+#Environment=DOTNET_ROOT=/opt/rh/rh-dotnet31/root/usr/lib64/dotnet  
+
+[Install]
+WantedBy=multi-user.target
