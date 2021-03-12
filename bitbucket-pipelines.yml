@@ -14,6 +14,8 @@ pipelines:
               - dotnet build --no-restore --configuration Release
               - dotnet test --no-build --configuration Release --test-adapter-path:. --logger:"junit;LogFilePath=$REPORTS_PATH/junit.xml"
               - dotnet publish $SOLUTION_NAME --output ./publish
+              - cp Erg.service publish/Erg.service
+              - cp PostDeploy.sh publish/PostDeploy.sh
             artifacts:
               - publish/**
         - step:
