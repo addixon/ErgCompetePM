@@ -34,7 +34,7 @@ pipelines:
         name: Pack and Push to Octopus
         image: octopusdeploy/octo:6.17.3-alpine
         script:
-          - export OCTOPUS_SERVER = "https://adamdixon.octopus.app"
+          - export OCTOPUS_SERVER = https://adamdixon.octopus.app
           - export VERSION=1.0.$BITBUCKET_BUILD_NUMBER
           - cd publish
           - octo pack --id $BITBUCKET_REPO_SLUG --version $VERSION --outFolder ./out --format zip
