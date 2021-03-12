@@ -32,8 +32,6 @@ pipelines:
               - linter-reports/**
     - step:
         name: Zip and Push to Octopus
-        caches:
-          - zip
         script:
           - export SOLUTION_NAME=ErgCompetePM
           - export VERSION=1.$BITBUCKET_BUILD_NUMBER
