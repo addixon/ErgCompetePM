@@ -103,7 +103,7 @@ namespace BLL
                     (int BusNumber, int Address) location = (foundDevice.BusNumber, foundDevice.Address);
 
                     foundDevice.Open();
-                    foundDevice.SetConfiguration(foundDevice.Configs[0].ConfigurationValue);
+                    //foundDevice.SetConfiguration(foundDevice.Configs[0].ConfigurationValue);
                     foundDevice.ClaimInterface(foundDevice.Configs[0].Interfaces[0].Number);
 
                     UsbEndpointReader reader = foundDevice.OpenEndpointReader(LibUsbDotNet.Main.ReadEndpointID.Ep01);
