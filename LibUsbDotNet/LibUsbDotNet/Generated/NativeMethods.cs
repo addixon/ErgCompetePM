@@ -54,6 +54,9 @@ namespace LibUsbDotNet
 #elif REFERENCE_ASSEMBLY
                 internal const string LibUsbNativeLibrary = "usb";
                 internal const CallingConvention LibUsbCallingConvention = CallingConvention.Cdecl;
+#elif true
+        internal const string LibUsbNativeLibrary = "libusb-1.0.so.0";
+        internal const CallingConvention LibUsbCallingConvention = CallingConvention.Cdecl;
 #endif
 
         [DllImport(LibUsbNativeLibrary, CallingConvention = LibUsbCallingConvention, EntryPoint = "libusb_init")]
