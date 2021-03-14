@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKSCI_TX_SEND_ERR : Exception
 	{

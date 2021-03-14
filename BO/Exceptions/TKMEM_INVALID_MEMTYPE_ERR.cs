@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKMEM_INVALID_MEMTYPE_ERR : Exception
 	{

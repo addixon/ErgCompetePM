@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BO.Enums
+namespace PM.BO.Enums
 {
     public enum IntervalType
     {

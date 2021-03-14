@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCSAFE_CSAFE_FRAME_TOO_LONG_ERR : Exception
 	{

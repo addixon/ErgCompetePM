@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKFRAME_CSAFE_FRAME_STUFF_ERR : Exception
 	{

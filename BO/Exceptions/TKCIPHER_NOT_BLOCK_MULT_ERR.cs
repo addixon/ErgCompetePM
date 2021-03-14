@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCIPHER_NOT_BLOCK_MULT_ERR : Exception
 	{

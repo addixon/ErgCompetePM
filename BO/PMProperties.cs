@@ -1,6 +1,6 @@
-﻿using BO.Enums;
+﻿using PM.BO.Enums;
 
-namespace BO
+namespace PM.BO
 {
     public record PMProperties
     {

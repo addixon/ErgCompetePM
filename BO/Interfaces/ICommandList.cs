@@ -1,16 +1,17 @@
 ﻿using System.Collections.Generic;
 
-namespace BO.Interfaces
+namespace PM.BO.Interfaces
 {
     public interface ICommandList : IList<ICommand>
     {
-        uint[] Buffer { get; }
-        int Size { get; }
         bool CanSend { get; }
 
         ushort ExpectedResponseSize { get; }
 
+        uint[] Buffer { get; }
+
         void Reset();
+
         new void Add(ICommand command);
 
         void AddRange(IEnumerable<ICommand> commands);

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class PM3FLASH_INVALID_CRC_START_ERR : Exception
 	{

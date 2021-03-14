@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCSAFE_INVALID_ID_IN_RSP_ERR : Exception
 	{

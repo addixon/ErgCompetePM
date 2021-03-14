@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCMDPR_NO_DATA_AVAILABLE_ERR : Exception
 	{

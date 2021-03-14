@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class IOUSB_BAD_FRAMENUM_ERR : Exception
 	{

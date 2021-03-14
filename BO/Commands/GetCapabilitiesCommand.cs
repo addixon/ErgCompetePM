@@ -1,8 +1,9 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System;
+using System.Collections.Generic;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class GetCapabilitiesCommand: LongGetCommand
     {
@@ -10,7 +11,7 @@ namespace BO.Commands
         public override ushort? ResponseSize { get; } = 0;
         
         public override bool IsProprietary => false;
-        protected override uint[]? Data { get; }
+        protected override IEnumerable<uint>? Data { get; }
 
 
         public GetCapabilitiesCommand(byte capabilityCode) : base(null)

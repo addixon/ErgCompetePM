@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKDISP_STRING_TOO_HIGH_ERR : Exception
 	{

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKRACE_SYNC_ERROR_NO_PM3 : Exception
 	{

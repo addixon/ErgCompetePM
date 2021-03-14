@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BO
+namespace PM.BO.Enums
 {
     public enum PMCommandType
     {

@@ -1,10 +1,12 @@
-﻿using System;
+﻿using PM.BO.Enums;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace BO
+namespace PM.BO
 {
     public abstract class ShortGetCommand : GetCommand
     {
-        protected override uint[]? Data => Array.Empty<uint>();
+        protected override IEnumerable<uint>? Data => Enumerable.Empty<uint>();
         public override PMCommandType CommandType => PMCommandType.Short;
 
         public ShortGetCommand(ushort? refreshRate) : base(refreshRate)

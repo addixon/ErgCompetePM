@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class IORTCLOCK_WRITE_TIME_ERR : Exception
 	{

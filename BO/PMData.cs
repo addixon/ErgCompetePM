@@ -1,7 +1,7 @@
-﻿using BO.Enums;
+﻿using PM.BO.Enums;
 using System;
 
-namespace BO
+namespace PM.BO
 {
     public class PMData
     {

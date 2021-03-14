@@ -1,8 +1,8 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class GetWorkoutDurationCommand: ShortGetCommand
     {

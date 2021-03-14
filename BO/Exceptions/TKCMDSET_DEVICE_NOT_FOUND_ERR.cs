@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCMDSET_DEVICE_NOT_FOUND_ERR : Exception
 	{

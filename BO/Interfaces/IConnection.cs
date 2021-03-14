@@ -1,8 +1,9 @@
-﻿using BO.Enums;
+﻿using PM.BO;
+using PM.BO.Enums;
 using System.Collections.Generic;
 using System.Data;
 
-namespace BO.Interfaces
+namespace PM.BO.Interfaces
 {
     public interface IConnection
     {

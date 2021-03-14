@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class IOADCONV_RESET_TIMEOUT_ERR : Exception
 	{

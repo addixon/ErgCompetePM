@@ -1,9 +1,12 @@
-﻿using BO;
-using BO.Interfaces;
+﻿using BLL.Communication;
+using PM.BO;
+using PM.BO.Commands;
+using PM.BO.EventArguments;
+using PM.BO.Interfaces;
+using LibUsbDotNet.LibUsb;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,44 +17,31 @@ namespace ErgCompetePM
 {
     internal class Program : IHostedService
     {
-        private static object _displayLock = new object();
+        private static readonly object _displayLock = new object();
 
         private readonly IPMService _pmService;
         private readonly ILogger<Program> _logger;
+        private Timer _hubConnectTimer;
+        private bool _isHubConnected = false;
 
-        private IList<Task> _performanceMonitors;
-
-        private HubConnection _hubConnection;
+        private HubConnection? _hubConnection;
 
         public Program(IPMService pmService, ILogger<Program> logger)
         {
             _logger = logger;
             _pmService = pmService;
-
-            _performanceMonitors = new List<Task>();
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting Program...");
 
-            IList<ushort> ports = _pmService.Discover().ToList();
-
-            if (ports.Any()) 
-            {
-                _logger.LogInformation("Intializing CSafe Protocol");
-                _pmService.InitializeCommunication();
-            }
-
-            foreach (ushort port in ports)
-            {
-                _logger.LogInformation("Creating poll task for port [{Port}]", port);
-                _performanceMonitors.Add(Task.Run(() => _pmService.Poll(port), cancellationToken));
-                _pmService.PollReturned += RefreshScreen;
-                _pmService.PollReturned += RefreshHub;
-            }
-
-            await InitiateHub(cancellationToken);
+            _hubConnectTimer = new Timer(InitiateHub, cancellationToken, 0, 30000);
+            _pmService.DeviceFound += StartMonitoringDevice;
+            _pmService.DeviceLost += StopMonitoringDevice;
+            _pmService.PollReturned += RefreshScreen;
+            _pmService.PollReturned += RefreshHub;
+            _pmService.StartAutoDiscovery();
 
             // Run forever
             do { } while (true);
@@ -62,21 +52,31 @@ namespace ErgCompetePM
             // Empty
         }
 
-        private async Task InitiateHub(CancellationToken cancellationToken)
+        private void InitiateHub(object? state)
         {
+            if (_isHubConnected)
+            {
+                return;
+            }
+
+            if (state == null)
+            {
+                throw new ArgumentNullException("State was null when initiating hub");
+            }
+
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl("http://ngrok.ergcompete.com/erg")
+                //.WithUrl("http://localhost:49574/erg")
                 .WithAutomaticReconnect()
                 .Build();
 
             try
             {
-                await _hubConnection.StartAsync(cancellationToken);
-                Console.WriteLine("Hub Connection started");
+                Task.Run(async() => await _hubConnection.StartAsync((CancellationToken)state));
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exception: " + ex);
+                _logger.LogError(ex, "Hub not starting.");
             }
         }
 
@@ -102,6 +102,26 @@ namespace ErgCompetePM
             });
         }
 
+        private void StartMonitoringDevice(object? sender, EventArgs args)
+        {
+            if (args == null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
+
+            if (args is not DeviceEventArgs deviceArgs)
+            {
+                throw new Exception("Unexpected event arguments.");
+            }
+
+            _pmService.Poll(deviceArgs.Location);
+        }
+
+        private void StopMonitoringDevice(object? sender, EventArgs args)
+        {
+
+        }
+
         private void RefreshScreen(object? sender, EventArgs args)
         {
             if (args == null)
@@ -120,11 +140,11 @@ namespace ErgCompetePM
 
                 if (pollArgs.Data == null)
                 {
-                    Console.WriteLine("Data is empty");
-                    return;
+                    throw new Exception("Empty poll data");
                 }
 
-                Console.WriteLine("Port: " + pollArgs.Port);
+                Console.WriteLine("HubConnection: " + _hubConnection.State);
+                Console.WriteLine("Location: " + pollArgs.Location);
 
                 Console.WriteLine("Stroke State: " + pollArgs.Data.StrokeState);
                 Console.WriteLine("Calories: " + pollArgs.Data.AccumulatedCalories);

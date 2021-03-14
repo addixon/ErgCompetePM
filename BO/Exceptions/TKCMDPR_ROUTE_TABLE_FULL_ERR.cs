@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCMDPR_ROUTE_TABLE_FULL_ERR : Exception
 	{

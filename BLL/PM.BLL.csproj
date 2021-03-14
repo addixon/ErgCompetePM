@@ -6,30 +6,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="DLLs\" />
-    <Folder Include="External\" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="LibUsbDotNet" Version="3.0.87-alpha" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="4.8.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BO\PM.BO.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="DLLs\PM3CsafeCP.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="DLLs\PM3DDICP.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="DLLs\PM3USBCP.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

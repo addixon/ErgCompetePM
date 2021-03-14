@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKREG_CANNOT_CREATE_KEY_ERR : Exception
 	{

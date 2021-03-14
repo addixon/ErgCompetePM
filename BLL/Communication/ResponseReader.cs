@@ -1,6 +1,8 @@
-﻿using BO;
-using BO.Interfaces;
+﻿using PM.BO;
+using PM.BO.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace BLL.Communication
 {
@@ -8,8 +10,14 @@ namespace BLL.Communication
     {
         protected override BufferType BufferType => BufferType.Read;
 
-        public ResponseReader(ushort bufferSize = 0) : base(bufferSize)
+        public ResponseReader() : base()
         {
+
+        }
+
+        public ResponseReader(IEnumerable<uint> bytes) : base()
+        {
+            AddRange(bytes);
         }
 
         public uint ReadByte()
@@ -19,7 +27,7 @@ namespace BLL.Communication
                 throw new InvalidOperationException("Can not read byte. Position is past end of buffer.");
             }
 
-            return Buffer[Position++];
+            return this[Position++];
         }
 
         public uint ReadUShort()
@@ -50,10 +58,20 @@ namespace BLL.Communication
 
             for (int i = 0; i < totalBytes; i++)
             {
-                value += (ulong)(ReadByte() << i * 8);
+                value += ReadByte() << i * 8;
             }
 
             return (TReturnType)(object)value;
+        }
+
+        public void Truncate(int index)
+        {
+            if (index > Count)
+            {
+                throw new IndexOutOfRangeException("Index specified to truncate was higher than Count");
+            }
+
+            RemoveRange(index, Count - index);
         }
     }
 }

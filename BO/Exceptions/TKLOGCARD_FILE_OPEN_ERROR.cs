@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKLOGCARD_FILE_OPEN_ERROR : Exception
 	{

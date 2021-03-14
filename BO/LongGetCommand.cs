@@ -1,4 +1,6 @@
-﻿namespace BO
+﻿using PM.BO.Enums;
+
+namespace PM.BO
 {
     public abstract class LongGetCommand : GetCommand
     {

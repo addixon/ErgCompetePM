@@ -1,4 +1,4 @@
-﻿namespace BO
+﻿namespace PM.BO
 {
     public class StrokeStatistics
     {

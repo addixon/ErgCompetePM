@@ -1,8 +1,8 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System.Collections.Generic;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class GetHeartBeatDataCommand: LongGetCommand
     {
@@ -13,7 +13,7 @@ namespace BO.Commands
 
         public new string Resolution = "1 ms";
 
-        protected override uint[]? Data { get; }
+        protected override IEnumerable<uint>? Data { get; }
 
 
         public GetHeartBeatDataCommand(ushort blockLengthInBytes) : base(null)

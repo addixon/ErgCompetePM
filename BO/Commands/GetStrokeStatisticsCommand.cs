@@ -1,7 +1,8 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
+using System.Collections.Generic;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class GetStrokeStatisticsCommand: LongGetCommand
     {
@@ -11,7 +12,7 @@ namespace BO.Commands
         public override bool IsProprietary => true;
         private const ushort _refreshRate = 2;
 
-        protected override uint[]? Data { get; }
+        protected override IEnumerable<uint>? Data { get; }
 
         /// <summary>
         /// 

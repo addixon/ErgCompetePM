@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKSMCD_WRITE_TIMEOUT_ERR : Exception
 	{

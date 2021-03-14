@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKFRAME_CSAFE_NO_END_CHAR_ERR : Exception
 	{

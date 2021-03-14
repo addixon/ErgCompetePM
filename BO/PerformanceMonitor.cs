@@ -1,7 +1,6 @@
-﻿using BO.Interfaces;
-using System;
+﻿using System;
 
-namespace BO
+namespace PM.BO
 {
     public class PerformanceMonitor
     {

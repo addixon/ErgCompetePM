@@ -1,16 +1,21 @@
-﻿using System;
+﻿using LibUsbDotNet.LibUsb;
+using PM.BO;
+using System;
 using System.Collections.Generic;
 
-namespace BO.Interfaces
+namespace PM.BO.Interfaces
 {
     public interface IPMService
     {
-        IEnumerable<ushort> Discover();
-
-        void Poll(ushort port);
-
-        void InitializeCommunication();
-
+        void Poll((int BusNumber, int Address) location);
+        IEnumerable<(int BusNumber, int Address)> Discover();
+        void StartAutoDiscovery(int secondsBetweenDiscovery = 10);
+        void StopAutoDiscovery();
+        
+        event EventHandler? DeviceFound;
+        event EventHandler? DeviceLost;
         event EventHandler? PollReturned;
+
+        void QuickTest();
     }
 }

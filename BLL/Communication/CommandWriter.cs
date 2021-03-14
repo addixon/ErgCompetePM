@@ -1,6 +1,8 @@
-﻿using BO;
-using BO.Interfaces;
+﻿using PM.BO;
+using PM.BO.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BLL.Communication
 {
@@ -8,31 +10,41 @@ namespace BLL.Communication
     {
         protected override BufferType BufferType => BufferType.Write;
 
-        public CommandWriter(ushort bufferSize) : base(bufferSize)
+        public CommandWriter() : base()
         {
 
         }
 
         public void WriteByte(uint value)
         {
-            if (PositionsRemaining() <= 0)
-            {
-                throw new InvalidOperationException("Can not write byte. Buffer has been exceeded.");
-            }
+            EnsureAvailableSpace(0);
 
-            Buffer[Position++] = value;
+            Add(value);
+            Position++;
         }
 
         public void WriteBytes(uint[] value)
         {
-            if (PositionsRemaining() - value.Length <= 0)
+            EnsureAvailableSpace(value.Length);
+
+            AddRange(value);
+            Position += value.Length;
+        }
+
+        public void WriteBytes(IEnumerable<uint> value)
+        {
+            int size = value.Count();
+            EnsureAvailableSpace(size);
+
+            AddRange(value);
+            Position += size;
+        }
+
+        private void EnsureAvailableSpace(int spaceRequired)
+        {
+            if (PositionsRemaining() - spaceRequired <= 0)
             {
                 throw new InvalidOperationException("Can not write bytes. Buffer will be exceeded.");
-            }
-
-            for (int i = 0; i < value.Length; i++)
-            {
-                Buffer[Position++] = value[i];
             }
         }
     }

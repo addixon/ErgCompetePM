@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class IOHDW_INVALID_DMACLK_ERR : Exception
 	{

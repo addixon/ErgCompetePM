@@ -1,7 +1,10 @@
-﻿using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace BO
+namespace PM.BO
 {
     public abstract class GetCommand : ICommand
     {
@@ -30,7 +33,7 @@ namespace BO
 
         public abstract ushort? ResponseSize { get; }
 
-        public ushort Size => (ushort)(Data != null ? (Data.Length + 1) : 1);
+        public ushort Size => (ushort)(Data != null ? Data.Count() : 0);
 
         public abstract bool IsProprietary { get; }
 
@@ -46,7 +49,7 @@ namespace BO
 
         public bool IsLongCommand => CommandType == PMCommandType.Long;
 
-        protected abstract uint[]? Data { get; }
+        protected abstract IEnumerable<uint>? Data { get; }
 
         public dynamic? Value { get; protected set; }
 
@@ -64,24 +67,23 @@ namespace BO
                 return;
             }
 
-            for (int i = 0; i < Data.Length; i++)
+            foreach(uint value in Data)
             {
-                commandWriter.WriteByte(Data[i]);
+                commandWriter.WriteByte((byte)value);
             }
         }
 
         public void Read(IResponseReader responseReader)
         {
-            byte code = (byte) responseReader.ReadByte();
             ushort size = (ushort) responseReader.ReadByte();
 
-            if (code == Code && size == ResponseSize)
+            if (size == ResponseSize)
             {
                 ReadImplementation(responseReader, size);
             }
             else
             {
-                throw new System.Exception("Unexpected code or size");
+                throw new InvalidOperationException($"Unexpected size. Encountered size [{size}] and expected [{ResponseSize}].");
             }
         }
 

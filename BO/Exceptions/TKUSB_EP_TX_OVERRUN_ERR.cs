@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKUSB_EP_TX_OVERRUN_ERR : Exception
 	{

@@ -1,17 +1,17 @@
-﻿using BO.Enums;
+﻿using PM.BO.Enums;
 using System;
 using System.Collections.Generic;
 
-namespace BO.Interfaces
+namespace PM.BO.Interfaces
 {
     public interface IPMPollingService
     {
         event EventHandler? PollReturned;
 
-        void StartPolling(ushort port, IEnumerable<PollInterval> pollIntervals);
+        void StartPolling((int BusNumber, int Address) location, IEnumerable<PollInterval> pollIntervals);
 
-        void StopPolling(ushort port);
+        void StopPolling((int BusNumber, int Address) location);
 
-        void OnPollReturned(EventArgs args);
+        bool IsActive((int BusNumber, int Address) location);
     }
 }

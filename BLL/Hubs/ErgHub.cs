@@ -1,5 +1,6 @@
-﻿using BO;
-using BO.Interfaces;
+﻿using PM.BO;
+using PM.BO.EventArguments;
+using PM.BO.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;

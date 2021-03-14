@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCMDPR_INVALID_CMD_ADDR_ERR : Exception
 	{

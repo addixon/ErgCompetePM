@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKNET_WINSOCK_CLOSE_SOCKET_ERR : Exception
 	{

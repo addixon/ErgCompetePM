@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKNET_INCORRECT_IP_IN_RSP_ERR : Exception
 	{

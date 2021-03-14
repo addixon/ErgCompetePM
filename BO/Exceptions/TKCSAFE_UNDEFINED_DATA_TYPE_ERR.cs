@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCSAFE_UNDEFINED_DATA_TYPE_ERR : Exception
 	{

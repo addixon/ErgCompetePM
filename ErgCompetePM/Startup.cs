@@ -1,9 +1,8 @@
 ﻿using BLL;
 using BLL.Communication;
-using BLL.External;
 using BLL.Helpers;
-using BO.Enums;
-using BO.Interfaces;
+using PM.BO.Enums;
+using PM.BO.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,6 +13,7 @@ using System.Data;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PM.BLL.Factories;
 
 namespace ErgCompetePM
 {
@@ -66,6 +66,8 @@ namespace ErgCompetePM
         /// <param name="serviceCollection">The service collection</param>
         private static void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection serviceCollection)
         {
+            serviceCollection.AddLogging();
+
             // Add SignalR
             serviceCollection.AddSignalR();
 
@@ -75,9 +77,11 @@ namespace ErgCompetePM
             // Add injected dependencies
             serviceCollection.AddScoped<IPMService, PMService>();
             serviceCollection.AddScoped<IResponseReader, ResponseReader>();
-            serviceCollection.AddScoped<IPMCommunicator, PMCommunicator>();
+            serviceCollection.AddSingleton<IPMCommunicator, PMCommunicator>();
             serviceCollection.AddScoped<IPMPollingService, PMPollingService>();
-            serviceCollection.AddSingleton<IExceptionActivator, ExceptionActivator>();
+            serviceCollection.AddTransient<ICommandListFactory, CommandListFactory>();
+
+            serviceCollection.AddSingleton<ILoggerFactory, LoggerFactory>();
 
             // Add configuration
             //serviceCollection.Configure<GAPIConfiguration>(hostBuilderContext.Configuration.GetSection("GAPI"));

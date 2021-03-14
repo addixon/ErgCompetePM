@@ -1,4 +1,4 @@
-﻿namespace BO.Enums
+﻿namespace PM.BO.Enums
 {
     public enum CSAFECommand
     {

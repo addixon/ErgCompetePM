@@ -1,11 +1,11 @@
-﻿namespace BO.Interfaces
-{
-    public interface ICommunicationBuffer<TBufferType>
-    {
-        TBufferType[]? Buffer { get; }
-        ushort Position { get; }
-        ushort Size { get; }
+﻿using System.Collections.Generic;
 
-        void Reset(int? bufferSize = null);
+namespace PM.BO.Interfaces
+{
+    public interface ICommunicationBuffer<TBufferType> : IList<TBufferType>
+    {
+        int Size { get; }
+        int Position { get; }
+        void Reset();
     }
 }

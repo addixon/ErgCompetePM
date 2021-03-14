@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKEXP_CF_CARDNOTREADY_ERR : Exception
 	{

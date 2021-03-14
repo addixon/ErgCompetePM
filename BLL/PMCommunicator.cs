@@ -1,100 +1,132 @@
 ﻿using BLL.Communication;
-using BLL.External;
 using BLL.Helpers;
-using BO.Interfaces;
+using PM.BO.EventArguments;
+using PM.BO.Interfaces;
+using LibUsbDotNet;
+using LibUsbDotNet.LibUsb;
 using Microsoft.Extensions.Logging;
+using PM.BO.Comparers;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 
 namespace BLL
 {
     public class PMCommunicator : IPMCommunicator
     {
         /// <summary>
-        /// The supported device names used to search for Perofrmance Monitors
+        /// Locker for pm communication
         /// </summary>
-        private static readonly IEnumerable<string> _supportedDeviceNames = new[]
-        {
-            "Concept2 Performance Monitor 3 (PM3)",
-            "Concept2 Performance Monitor 5 (PM5)"
-        };
-
-        private static readonly PortMonitor _portMonitor = new PortMonitor();
-
+        /// <remarks>
+        /// Locks are created for each unique Hub/Address combination
+        /// </remarks>
+        private static readonly DeviceLocker _deviceLocker = new DeviceLocker();
         private readonly ILogger<PMCommunicator> _logger;
-        private readonly IExceptionActivator _exceptionActivator;
+        private static readonly ConcurrentDictionary<(int BusNumber, int Address), DateTime> _lastSends;
+        private readonly ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice> _devices;
+        private readonly ConcurrentDictionary<(int BustNumber, int Address), (UsbEndpointReader Reader, UsbEndpointWriter writer)> _endpoints; private readonly UsbContext _context;
 
-        public PMCommunicator(IExceptionActivator exceptionActivator, ILogger<PMCommunicator> logger)
+        private readonly Timer _discoveryTimer;
+
+        public event EventHandler? DeviceFound;
+        public event EventHandler? DeviceLost;
+        private readonly object _discoveryLock = new object();
+
+        static PMCommunicator ()
+        {
+            _lastSends = new ConcurrentDictionary<(int BusNumber, int Address), DateTime>();
+        }
+
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="exceptionActivator">Exception Activator</param>
+        /// <param name="logger">Logger</param>
+        public PMCommunicator(ILogger<PMCommunicator> logger)
         {
             _logger = logger;
-            _exceptionActivator = exceptionActivator;
+            _context = new UsbContext();
+            _endpoints = new ConcurrentDictionary<(int BusNumber, int Address), (UsbEndpointReader Reader, UsbEndpointWriter writer)>();
+            _devices = new ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice>();
+            _discoveryTimer = new Timer(InitiateDiscovery, null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        /// <inheritdoc/>
-        public void InitializeCSafe()
+        public void StartAutoDiscovery(int secondsBetweenDiscovery = 10)
         {
-            try 
-            { 
-                PM3CSAFE.CSAFE_InitializeProtocol(1000);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An exception occurred while initializing the CSAFE Protocol.");
-                throw;
-            }
+            _discoveryTimer.Change(0, secondsBetweenDiscovery * 1000);
         }
 
-        /// <inheritdoc/>
-        public void InitializeDDI()
+        public void StopAutoDiscovery()
         {
-            try
-            {
-                PM3DDI.DDI_Initialize();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An exception occurred while initializing the DDI Protocol.");
-                throw;
-            }
+            _discoveryTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
-        /// <inheritdoc/>
-        public IEnumerable<ushort> DiscoverPorts()
+        public IEnumerable<(int BusNumber, int Address)> Discover()
         {
-            ushort totalNumberOfUnits = 0;
-
-            foreach (string deviceName in _supportedDeviceNames)
+            lock (_discoveryLock)
             {
-                try 
-                { 
-                    short errorCode = PM3DDI.DDI_Discover(deviceName, 0, out ushort numberOfUnits);
-                    EnsureSuccess(errorCode);
+                UsbDeviceCollection? usbDeviceCollection = _context.List();
 
-                    totalNumberOfUnits += numberOfUnits;
-                }
-                catch (Exception e)
+                // Filter out all but Concept2 Vendor
+                var discoveredDevices = usbDeviceCollection.Where(d => d.VendorId == 0x17A4);
+
+                // Discover disconnected devices
+                foreach (UsbDevice detachedDevice in _devices.Values.Except(discoveredDevices, new IUsbDeviceComparer()))
                 {
-                    _logger.LogError(e, "An exception occurred while discovering PMs named [{PMName}]. Continuting...", deviceName);
+                    (int BusNumber, int Address) location = (detachedDevice.BusNumber, detachedDevice.Address);
+
+                    // If events are enabled, fire one for the device being lost
+                    EventArgs args = new DeviceEventArgs
+                    {
+                        Location = location
+                    };
+
+                    DeviceLost?.Invoke(this, args);
+
+                    // Clean up device
+                    Destroy(detachedDevice);
+
+                    // Remove from devices
+                    _devices.Remove(location, out _);
                 }
+
+                // Discover new devices
+                foreach (UsbDevice foundDevice in discoveredDevices.Except(_devices.Values, new IUsbDeviceComparer()))
+                {
+                    if (!IsValidDevice(foundDevice))
+                    {
+                        _logger.LogWarning("Invalid device encountered. Not being added to the device list.");
+                    }
+
+                    (int BusNumber, int Address) location = (foundDevice.BusNumber, foundDevice.Address);
+
+                    foundDevice.Open();
+                    foundDevice.SetConfiguration(foundDevice.Configs[0].ConfigurationValue);
+                    foundDevice.ClaimInterface(foundDevice.Configs[0].Interfaces[0].Number);
+
+                    UsbEndpointReader reader = foundDevice.OpenEndpointReader(LibUsbDotNet.Main.ReadEndpointID.Ep01);
+                    UsbEndpointWriter writer = foundDevice.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
+                    _endpoints[location] = (reader, writer);
+
+                    // If events are enabled, fire one for the device being found
+                    EventArgs args = new DeviceEventArgs
+                    {
+                        Location = location
+                    };
+
+                    DeviceFound?.Invoke(this, args);
+
+                    // Add to devices
+                    _devices.TryAdd(location, foundDevice);
+                }
+
+                return _devices.Values.Select(pm => ((int)((UsbDevice)pm).BusNumber, (int)((UsbDevice)pm).Address));
             }
-
-            return Enumerable.Range(0, totalNumberOfUnits).Select(unitNumber => (ushort)unitNumber);
         }
 
-        /// <inheritdoc/>
-        public string GetSerialNumber(ushort port)
-        {
-            StringBuilder serialNumber = new StringBuilder(16);
-            short errorCode = PM3DDI.DDI_SerialNumber(port, serialNumber, (byte)(serialNumber.Capacity + 1));
-            EnsureSuccess(errorCode);
-
-            return serialNumber.ToString();
-        }
-
-        /// <inheritdoc/>
-        public void Send(ushort port, ICommandList commands)
+        public void Send((int BusNumber, int Address) location, ICommandList commands)
         {
             if (!commands.CanSend)
             {
@@ -103,69 +135,117 @@ namespace BLL
                 throw e;
             }
 
-            lock (_portMonitor[port]) 
+            lock (_deviceLocker[location]) 
             {
-                bool shouldRetry = false;
-                ushort attemptCount = 1;
+                const int delayInMilliseconds = 10;
 
-                do
+                double? millisecondsSinceLastSend = null;
+
+                if (_lastSends.ContainsKey(location))
                 {
-                    try
-                    {
-                        // Get the expected response size and set the response reader
-                        ushort responseDataSize = commands.ExpectedResponseSize;
-                        ResponseReader responseReader = new ResponseReader(responseDataSize);
+                    millisecondsSinceLastSend = (DateTime.UtcNow - _lastSends[location]).TotalMilliseconds;
+                }
 
-                        // Execute the send
-                        Send(port, commands.Buffer, commands.Size, responseReader.Buffer, ref responseDataSize);
+                if (millisecondsSinceLastSend != null && millisecondsSinceLastSend < delayInMilliseconds)
+                {
+                    Thread.Sleep(delayInMilliseconds - (int) millisecondsSinceLastSend);
+                }
 
-                        // Reset the reader to the correct length based on returned value
-                        responseReader.Resize(responseDataSize);
+                (UsbEndpointReader reader, UsbEndpointWriter writer) = _endpoints[location];
+                
+                // Generate the write buffer and write to PM
+                // TODO: Find a way to allow the CommandList to be passed
+                byte[] writeBuffer = commands.Buffer.Select(b => (byte)b).ToArray();
 
-                        // Read the response into the commands
-                        bool success = commands.Read(responseReader);
+                Error writeResult = Error.Other;
+                try
+                {
+                    writeResult = writer.Write(writeBuffer, 100, out int writeBufferSize);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Exception occurred during writing. Buffer: [{WriteBuffer}]", writeBuffer);
+                }
+                finally
+                {
+                    _lastSends[location] = DateTime.UtcNow;
+                }
 
-                        if (!success)
-                        {
-                            _logger.LogError("The response was read, but the buffer was not fully consumed on attempt # [{AttemptNumber}]", attemptCount);
-                            shouldRetry = ++attemptCount <= 3;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e, "An exception occurred while sending/reading data to/from the PM on attempt # [{AttemptNumber}]", attemptCount);
+                if (writeResult != Error.Success)
+                {
+                    _logger.LogWarning("An error occurred while writing. Result: [{WriteResult}])", writeResult);
+                    return;
+                }
 
-                        // Retry for a total of 3 attempts
-                        shouldRetry = ++attemptCount <= 3;
-                    }
-                } while (shouldRetry);
+                byte[] readBuffer = new byte[1024];
+                Error readResult = Error.Other;
+                try 
+                { 
+                    readResult = reader.Read(readBuffer, 100, out int responseDataSize);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Exception occurred during reading. Buffer: [{ReadBuffer}]", readBuffer);
+                    return;
+                }
+
+                IResponseReader responseReader = new ResponseReader(readBuffer.Select(b => (uint) b));
+                bool responseReaderSuccess = commands.Read(responseReader);
+
+                if (!responseReaderSuccess)
+                {
+                    _logger.LogWarning("An error occurred while consuming the read buffer. Result: [{ResponseReadResult}])", responseReaderSuccess);
+                    return;
+                }
             }
         }
 
-        /// <summary>
-        /// Send a command data to the Performance Monitor
-        /// </summary>
-        /// <param name="commandData">The command data</param>
-        /// <param name="commandDataSize">The size of the command data</param>
-        /// <param name="responseData">The response data</param>
-        /// <param name="responseDataSize">The size of the response data</param>
-        private void Send(ushort port, uint[] commandData, int commandDataSize, uint[] responseData, ref ushort responseDataSize)
+        private void Destroy(IUsbDevice device)
         {
-            short errorCode = PM3CSAFE.CSAFE_Command(port, (ushort)commandDataSize, commandData, ref responseDataSize, responseData);
-
-            EnsureSuccess(errorCode);
-        }
-
-        private void EnsureSuccess(short errorCode)
-        {
-            if (errorCode == 0)
+            try
             {
-                // If no error code is returned from the PM, the commands were successful
-                return;
+                // Attempt to clean up device
+                device.ReleaseInterface(device.Configs[0].Interfaces[0].Number);
+                device.Close();
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Attempted to clean up device, but failed.");
+            }
+        }
+
+        private void InitiateDiscovery(object? state)
+        {
+            _ = Discover();
+        }
+
+        private bool IsValidDevice(IUsbDevice device)
+        {
+            if (device == null)
+            {
+                _logger.LogWarning("Device was found, but discovered to be null");
+                return false;
             }
 
-            // Creates an exception based on the error code and throws it
-            _exceptionActivator.CreateException(errorCode);
+            if (!device.Configs.Any())
+            {
+                _logger.LogWarning("Device was found, but had no configuration.");
+                return false;
+            }
+
+            if (!device.Configs[0].Interfaces.Any())
+            {
+                _logger.LogWarning("Device was found, but had no interfaces.");
+                return false;
+            }
+
+            if (device.Configs[0].Interfaces[0].Endpoints.Count != 2)
+            {
+                _logger.LogWarning("Device was found, but did not have 2 endpoints.");
+                return false;
+            }
+
+            return true;
         }
     }
 }

@@ -1,7 +1,7 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class GetStrokeStateCommand: ShortGetCommand
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class IODMA_INVALID_MEM_CHAN_ERR : Exception
 	{

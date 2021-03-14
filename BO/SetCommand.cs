@@ -1,8 +1,10 @@
-﻿using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace BO
+namespace PM.BO
 {
     public abstract class SetCommand : ICommand
     {
@@ -26,8 +28,6 @@ namespace BO
             }
         }
 
-        protected static uint[] EmptyByteArray => Enumerable.Empty<uint>().ToArray();
-
         public abstract byte Code { get; }
 
         public abstract PMCommandType CommandType { get; }
@@ -38,7 +38,7 @@ namespace BO
 
         public abstract bool IsProprietary { get; }
 
-        private uint[]? Data { get; }
+        protected IEnumerable<uint>? Data { get; set; }
 
         public string? Units { get; }
 
@@ -52,17 +52,23 @@ namespace BO
 
         public dynamic Value => throw new InvalidOperationException("Set commands do not have a value.");
 
-        public SetCommand(uint[] data)
+        public SetCommand()
         {
-            Data = data;
+            Data = Enumerable.Empty<uint>();
+        }
+
+        public SetCommand(uint[]? data = null)
+        {
+            Data = data ?? Enumerable.Empty<uint>();
         }
 
         public void Write(ICommandWriter commandWriter)
         {
             commandWriter.WriteByte(Code);
 
-            if (Data != null) 
-            { 
+            if (Data != null && Data.Any()) 
+            {
+                commandWriter.WriteByte((uint) Data.Count());
                 commandWriter.WriteBytes(Data);
             }
         }

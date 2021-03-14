@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKRTTIMER_INVALID_MONTH_ERR : Exception
 	{

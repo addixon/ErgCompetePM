@@ -1,43 +1,69 @@
-﻿using BO;
-using BO.Interfaces;
-using System;
+﻿using PM.BO;
+using PM.BO.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BLL.Communication
 {
-    public abstract class CommunicationBuffer<TBufferType> : ICommunicationBuffer<TBufferType>
+    public abstract class CommunicationBuffer<TBufferType> : List<TBufferType>, ICommunicationBuffer<TBufferType>
     {
+        public int Size => Count;
+        public int Length => Count;
+        public int Position { get; protected set; }
+
+        protected int MaxSize { get; }
         protected abstract BufferType BufferType { get; }
 
-        public TBufferType[] Buffer { get; private set; }
-
-        public ushort Position { get; protected set; }
-
-        public ushort Size => (ushort)(Buffer?.Length ?? 0);
-
-        public CommunicationBuffer(ushort bufferSize)
+        public CommunicationBuffer(int maxSize = 96)
         {
-            Buffer = new TBufferType[bufferSize];
+            MaxSize = maxSize;
             Position = 0;
         }
 
-        public void Reset(int? bufferSize = null)
-        {
-            Buffer = new TBufferType[bufferSize ?? 0];
+        public void Reset()
+        {   
+            Clear();
             Position = 0;
         }
 
-        public void Resize(int bufferSize)
+        public TBufferType Peek()
         {
-            TBufferType[] bufferCopy = new TBufferType[bufferSize];
-            int sizeToCopy = Math.Min(Buffer?.Length ?? 0, bufferSize);
-            Array.Copy(Buffer ?? Array.Empty<TBufferType>(), bufferCopy, sizeToCopy);
-            Buffer = bufferCopy;
-            Position = 0;
+            return this[Position];
         }
 
         protected int PositionsRemaining()
         {
-            return Size - Position;
+            return MaxSize - Position;
+        }
+
+        public void PrependRange(IEnumerable<TBufferType> range)
+        {
+            InsertRange(0, range);
+            Position += range.Count();
+        }
+
+        public new void RemoveAt(int index)
+        {
+            base.RemoveAt(index);
+            Position--;
+        }
+        
+        public new void InsertRange(int index, IEnumerable<TBufferType> range)
+        {
+            base.InsertRange(index, range);
+            Position += range.Count();
+        }
+
+        public void AppendRange(IEnumerable<TBufferType> range)
+        {
+            base.AddRange(range);
+            Position += range.Count();
+        }
+
+        public new void Insert(int index, TBufferType value)
+        {
+            base.Insert(index, value);
+            Position++;
         }
     }
 }

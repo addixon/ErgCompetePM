@@ -1,7 +1,10 @@
-﻿using BO.Enums;
+﻿using PM.BO.Enums;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
+    /// <summary>
+    /// Sets the PM to "Ready" state
+    /// </summary>
     public class SetMachineStateReadyCommand : ShortSetCommand
     {
         public override byte Code => (byte) CSAFECommand.GOREADY;
@@ -9,7 +12,7 @@ namespace BO.Commands
         
         public override bool IsProprietary => false;
 
-        public SetMachineStateReadyCommand() : base(EmptyByteArray)
+        public SetMachineStateReadyCommand() : base()
         {
 
         }

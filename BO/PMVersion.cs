@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BO
+namespace PM.BO
 {
     public enum PMVersion
     {

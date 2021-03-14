@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCOM_INVALID_DEVICE_NAME_ERR : Exception
 	{

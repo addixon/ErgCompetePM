@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKTACH_INVALID_NUM_MEAS_ERR : Exception
 	{

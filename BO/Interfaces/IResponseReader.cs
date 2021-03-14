@@ -1,4 +1,4 @@
-﻿namespace BO.Interfaces
+﻿namespace PM.BO.Interfaces
 {
     public interface IResponseReader : ICommunicationBuffer<uint>
     {
@@ -11,5 +11,7 @@
         uint ReadBytes(int totalBytes);
 
         TReturnType ReadBytes<TReturnType>(int totalBytes) where TReturnType : struct;
+
+        void Truncate(int index);
     }
 }

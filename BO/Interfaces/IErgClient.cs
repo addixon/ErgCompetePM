@@ -1,6 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using PM.BO;
+using System.Threading.Tasks;
 
-namespace BO.Interfaces
+namespace PM.BO.Interfaces
 {
     public interface IErgClient
     {

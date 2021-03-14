@@ -1,8 +1,8 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System.Collections.Generic;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class GetForcePlotDataCommand: ShortGetCommand
     {

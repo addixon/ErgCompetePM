@@ -1,6 +1,6 @@
-﻿using BO.Enums;
+﻿using PM.BO.Enums;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
     public class SetMachineStateIdleCommand : ShortSetCommand
     {
@@ -9,7 +9,7 @@ namespace BO.Commands
         
         public override bool IsProprietary => false;
 
-        public SetMachineStateIdleCommand() : base(EmptyByteArray)
+        public SetMachineStateIdleCommand() : base()
         {
 
         }

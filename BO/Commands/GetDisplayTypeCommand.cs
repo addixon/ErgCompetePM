@@ -1,9 +1,10 @@
-﻿using BO.Enums;
-using BO.Interfaces;
+﻿using PM.BO.Interfaces;
+using PM.BO.Enums;
 using System;
 
-namespace BO.Commands
+namespace PM.BO.Commands
 {
+    [Obsolete("Not supported by Performance Monitors")]
     public class GetDisplayTypeCommand: ShortGetCommand
     {
         public override byte Code => (byte) PM3Command.GET_DISPLAYTYPE;

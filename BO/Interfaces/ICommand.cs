@@ -1,4 +1,6 @@
-﻿namespace BO.Interfaces
+﻿using PM.BO.Enums;
+
+namespace PM.BO.Interfaces
 {
     public interface ICommand
     {

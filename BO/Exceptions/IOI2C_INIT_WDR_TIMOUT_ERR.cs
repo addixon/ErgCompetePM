@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class IOI2C_INIT_WDR_TIMOUT_ERR : Exception
 	{

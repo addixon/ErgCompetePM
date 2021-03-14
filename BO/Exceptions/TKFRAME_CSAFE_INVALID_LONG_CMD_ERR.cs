@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKFRAME_CSAFE_INVALID_LONG_CMD_ERR : Exception
 	{

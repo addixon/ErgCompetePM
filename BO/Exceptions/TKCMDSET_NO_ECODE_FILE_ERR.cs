@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BO.Exceptions
+namespace PM.BO.Exceptions
 {
 	public class TKCMDSET_NO_ECODE_FILE_ERR : Exception
 	{
