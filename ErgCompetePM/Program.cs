@@ -65,7 +65,7 @@ namespace ErgCompetePM
             }
 
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl("http://ngrok.ergcompete.com/erg")
+                .WithUrl("http://ergcompete.azurewebsites.net/erg")
                 //.WithUrl("http://localhost:49574/erg")
                 .WithAutomaticReconnect()
                 .Build();
