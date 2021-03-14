@@ -3,7 +3,7 @@ Description=ErgCompete Communication service
 
 [Service]
 # systemd will run this executable to start the service
-ExecStart=bash -c '$(find "$PWD" -maxdepth 1 -type d -not -name "Octopus*" | sort -V | tail -1)/ErgCompetePM;'
+ExecStart=bash '$(find "$PWD" -maxdepth 1 -type d -not -name "Octopus*" | sort -V | tail -1)/ErgCompetePM;'
 # to query logs using journalctl, set a logical name here
 SyslogIdentifier=ErgCompete
 
