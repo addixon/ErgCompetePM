@@ -11,8 +11,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LibUsbDotNet" Version="3.0.87-alpha" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LibUsbDotNet\LibUsbDotNet.csproj" />
   </ItemGroup>
 
 </Project>
