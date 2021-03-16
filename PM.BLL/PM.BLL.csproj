@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BO\PM.BO.csproj" />
     <ProjectReference Include="..\LibUsbDotNet\LibUsbDotNet.csproj" />
+    <ProjectReference Include="..\PM.BO\PM.BO.csproj" />
   </ItemGroup>
 
 </Project>

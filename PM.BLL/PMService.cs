@@ -79,9 +79,9 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public void StartAutoDiscovery(int secondsBetweenDiscovery = 10)
+        public void StartAutoDiscovery(int millisecondsBetweenDiscovery = 100)
         {
-            _pmCommunicator.StartAutoDiscovery(secondsBetweenDiscovery);
+            _pmCommunicator.StartAutoDiscovery(millisecondsBetweenDiscovery);
         }
 
         /// <inheritdoc />

@@ -20,45 +20,14 @@ namespace BLL
     public class PMPollingService : IPMPollingService
     {
         /// <summary>
+        /// Lock for accessing workout state in MemoryCache
+        /// </summary>
+        private static readonly object _workoutStateLock;
+
+        /// <summary>
         /// List of standard poll commands at defined intervals
         /// </summary>
-        private static readonly IDictionary<PollInterval, IList<ICommand>> _pollIntervals = new Dictionary<PollInterval, IList<ICommand>>
-            {
-            #region 100Hz
-            { PollInterval.Hz_100, new List<ICommand>
-                {
-                    new GetStrokeStateCommand()
-                } },
-            #endregion
-            #region 10Hz
-            { PollInterval.Hz_10, new List<ICommand>
-                {
-                    new GetWorkoutDurationCommand(),
-                    new GetHorizontalDistanceCommand(),
-                    new GetWorkTimeCommand(),
-                    new GetWorkDistanceCommand(),
-                    new GetRestTimeCommand()
-                } },
-            #endregion
-            #region 2Hz
-            { PollInterval.Hz_2, new List<ICommand>
-                {
-                    new GetPaceCommand(),
-                    new GetPowerCommand(),
-                    new GetAccumulatedCaloriesCommand(),
-                    new GetCadenceCommand(),
-                    new GetDragFactorCommand(),
-                    new GetWorkoutStateCommand(),
-                    new GetStrokeStatisticsCommand()
-                } },
-            #endregion
-            #region 1Hz
-            { PollInterval.Hz_1, new List<ICommand>
-                {
-                    new GetCurrentHeartRateCommand()
-                } },
-            #endregion
-        };
+        private static readonly IDictionary<PollInterval, IList<ICommand>> _pollIntervals;
 
         /// <summary>
         /// Seconds between checking for current workout state
@@ -68,12 +37,12 @@ namespace BLL
         /// <summary>
         /// Locations that have active polls
         /// </summary>
-        private static readonly ConcurrentDictionary<(int BusNumber, int Address), Timer> _activePolls = new();
+        private static readonly ConcurrentDictionary<(int BusNumber, int Address), Timer> _activePolls;
         
         /// <summary>
         /// PM Data for each location
         /// </summary>
-        private static readonly ConcurrentDictionary<(int BusNumber, int Address), PMData> _data = new();
+        private static readonly ConcurrentDictionary<(int BusNumber, int Address), PMData> _data;
         
         /// <summary>
         /// The logger
@@ -93,6 +62,50 @@ namespace BLL
         /// <inheritdoc />
         public event EventHandler? PollReturned;
         
+        static PMPollingService()
+        {
+            _workoutStateLock = new();
+            _activePolls = new();
+            _data = new();
+            _pollIntervals = new Dictionary<PollInterval, IList<ICommand>>
+            {
+                #region 100Hz
+                { PollInterval.Hz_100, new List<ICommand>
+                    {
+                        new GetStrokeStateCommand()
+                    } },
+                #endregion
+                #region 10Hz
+                { PollInterval.Hz_10, new List<ICommand>
+                    {
+                        new GetWorkoutDurationCommand(),
+                        new GetHorizontalDistanceCommand(),
+                        new GetWorkTimeCommand(),
+                        new GetWorkDistanceCommand(),
+                        new GetRestTimeCommand()
+                    } },
+                #endregion
+                #region 2Hz
+                { PollInterval.Hz_2, new List<ICommand>
+                    {
+                        new GetPaceCommand(),
+                        new GetPowerCommand(),
+                        new GetAccumulatedCaloriesCommand(),
+                        new GetCadenceCommand(),
+                        new GetDragFactorCommand(),
+                        new GetWorkoutStateCommand(),
+                        new GetStrokeStatisticsCommand()
+                    } },
+                #endregion
+                #region 1Hz
+                { PollInterval.Hz_1, new List<ICommand>
+                    {
+                        new GetCurrentHeartRateCommand()
+                    } },
+                #endregion
+            };
+        }
+
         /// <summary>
         /// DI Constructor
         /// </summary>
@@ -209,6 +222,16 @@ namespace BLL
             string[] locationString = args.Key.Split('.');
 
             (int BusNumber, int Address) location = (int.Parse(locationString[0]), int.Parse(locationString[1]));
+            if (!_activePolls.ContainsKey(location))
+            {
+                // This device is no longer connected, so do not refresh the state
+                return;
+            }
+
+            if (args?.UpdatedCacheItem == null)
+            {
+                return;
+            }
 
             args.UpdatedCacheItem.Value = GetWorkoutState(location);
         }
@@ -218,7 +241,7 @@ namespace BLL
         /// </summary>
         /// <param name="location">The location</param>
         /// <returns>The current workout state</returns>
-        private WorkoutState GetWorkoutState((int BusNumber, int Address) location)
+        private WorkoutState? GetWorkoutState((int BusNumber, int Address) location)
         {
             ICommandList commands = _commandListFactory.Create();
             commands.Add(new GetWorkoutStateCommand());
@@ -234,7 +257,7 @@ namespace BLL
                 return WorkoutState.WaitingToBegin;
             }
 
-            return commands.First().Value;
+            return commands.FirstOrDefault()?.Value;
         }
 
         /// <summary>
@@ -259,22 +282,47 @@ namespace BLL
 
             string cacheKey = $"{pollState.Location.BusNumber}.{pollState.Location.Address}";
             ObjectCache workoutStateCache = MemoryCache.Default;
-            WorkoutState? workoutState = workoutStateCache[cacheKey] as WorkoutState?;
-                
-            if (workoutState == null)
-            {
-                CacheItemPolicy policy = new()
-                {
-                    AbsoluteExpiration = DateTime.UtcNow.AddSeconds(WorkoutStateCheckInterval),
-                    UpdateCallback = UpdateWorkoutState
-                };
+            WorkoutState? workoutState;
 
-                workoutState = GetWorkoutState(pollState.Location);
-                workoutStateCache.Set(cacheKey, workoutState, policy);
-            }
-            else
-            {
+            lock (_workoutStateLock) 
+            { 
                 workoutState = workoutStateCache[cacheKey] as WorkoutState?;
+            
+                if (workoutState == null)
+                {
+                    CacheItemPolicy policy = new()
+                    {
+                        AbsoluteExpiration = DateTime.UtcNow.AddSeconds(WorkoutStateCheckInterval),
+                        UpdateCallback = UpdateWorkoutState
+                    };
+
+                    int retryCount = 0;
+                    bool retryWorkoutState = false;
+                    do
+                    {
+                        workoutState = GetWorkoutState(pollState.Location);
+
+                        if (workoutState == null)
+                        {
+                            retryWorkoutState = retryCount++ < 2;
+                        }
+                        else
+                        {
+                            retryWorkoutState = false;
+                        }
+                    } while (retryWorkoutState);
+
+                    if (workoutState == null)
+                    {
+                        throw new InvalidOperationException("WorkoutState was null after retries.");
+                    }
+
+                    workoutStateCache.Set(cacheKey, workoutState, policy);
+                }
+                else
+                {
+                    workoutState = workoutStateCache[cacheKey] as WorkoutState?;
+                }
             }
 
             if (workoutState == null)

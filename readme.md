@@ -8,6 +8,8 @@ Additionally, while many CSAFE and PM3 commands are not currently used in this a
 ## Known issues  
 At this time, the Runtime Identifiers do not seem to be respected. These are used in establishing the correct libusb library to use. A workaround is to manually specify the desired library based on OS in LibUsbDotNet.LibUsbDotNet.Generated.NativeMethods.cs  
   
+If a device is disconnected and then reconnected within the auto discovery window, any write command results in a Timeout. I intend to explore events instead of polling to get a faster read on when a device is disconnected, but a workaround is to lower the AutoDiscovery period.  
+  
 ## Recognitions  
 In the process of converting this application from the PM3 libraries to a lower-level usb implementation, there were a few projects that helped provide insight into troubleshooting and communication standards. Those are:  
 - https://github.com/wemakewaves/PyRow  

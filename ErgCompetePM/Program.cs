@@ -74,8 +74,6 @@ namespace ErgCompetePM
         /// <inheritdoc/>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Starting Program...");
-
             // Uncomment the below 2 lines to leverage SignalR. An active hub is required to be listening for data
             //_hubConnectionTimer = new Timer(InitiateHub, cancellationToken, 0, 30000);
             //_pmService.PollReturned += RefreshHub;
@@ -83,6 +81,8 @@ namespace ErgCompetePM
             _pmService.DeviceFound += StartMonitoringDevice;
             _pmService.DeviceLost += StopMonitoringDevice;
             _pmService.PollReturned += RefreshScreen;
+
+            Console.WriteLine("Starting to listen for devices.");
             _pmService.StartAutoDiscovery();
 
             // Run forever
@@ -170,6 +170,8 @@ namespace ErgCompetePM
                 throw new Exception("Unexpected event arguments.");
             }
 
+            Console.WriteLine("Device found!");
+
             _pmService.StartPolling(deviceArgs.Location);
         }
 
@@ -188,6 +190,8 @@ namespace ErgCompetePM
             {
                 throw new Exception("Unexpected event arguments.");
             }
+
+            Console.WriteLine("Device lost!");
 
             // Do nothing at this time. Polling has been stopped by PMService
         }

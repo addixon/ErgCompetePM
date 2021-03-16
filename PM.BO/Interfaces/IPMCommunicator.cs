@@ -15,7 +15,7 @@ namespace PM.BO.Interfaces
         /// <remarks>
         /// Device data will be returned per device from the EventHandlers DeviceFound and DeviceLost, based on if they were found or lost.
         /// </remarks>
-        void StartAutoDiscovery(int secondsBetweenDiscovery = 10);
+        void StartAutoDiscovery(int millisecondsBetweenDiscovery = 100);
 
         /// <summary>
         /// Stops device auto discovery

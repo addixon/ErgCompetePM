@@ -92,9 +92,9 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public void StartAutoDiscovery(int secondsBetweenDiscovery = 10)
+        public void StartAutoDiscovery(int millisecondsBetweenDiscovery = 100)
         {
-            _discoveryTimer.Change(0, secondsBetweenDiscovery * 1000);
+            _discoveryTimer.Change(0, millisecondsBetweenDiscovery);
         }
 
         /// <inheritdoc />
@@ -188,26 +188,40 @@ namespace BLL
                 }
 
                 IUsbDevice device = _devices[location];
-                UsbEndpointReader reader = device.OpenEndpointReader(LibUsbDotNet.Main.ReadEndpointID.Ep01);
-                UsbEndpointWriter writer = device.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
 
                 // Generate the write buffer and write to PM
                 // TODO: Find a way to allow the CommandList to be passed
                 byte[] writeBuffer = commands.Buffer.Select(b => (byte)b).ToArray();
 
+                bool shouldRetry = false;
+                int retryCount = 0;
                 Error writeResult = Error.Other;
-                try
+                do
                 {
-                    writeResult = writer.Write(writeBuffer, 100, out int writeBufferSize);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Exception occurred during writing. Buffer: [{WriteBuffer}]", writeBuffer);
-                }
-                finally
-                {
-                    _lastSends[location] = DateTime.UtcNow;
-                }
+                    UsbEndpointWriter writer = device.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
+                    try
+                    {
+                        writeResult = writer.Write(writeBuffer, 100, out int writeBufferSize);
+
+                        if (writeResult == Error.Io)
+                        {
+                            CloseAndOpen(device);
+                            shouldRetry = retryCount++ < 2;
+                        }
+                        else if (writeResult == Error.Success)
+                        {
+                            shouldRetry = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning(e, "Exception occurred during writing. Buffer: [{WriteBuffer}]", writeBuffer);
+                    }
+                    finally
+                    {
+                        _lastSends[location] = DateTime.UtcNow;
+                    }
+                } while (shouldRetry);
 
                 if (writeResult != Error.Success)
                 {
@@ -217,13 +231,35 @@ namespace BLL
 
                 byte[] readBuffer = new byte[1024];
                 Error readResult = Error.Other;
-                try 
-                { 
-                    readResult = reader.Read(readBuffer, 100, out int responseDataSize);
-                }
-                catch (Exception e)
+                retryCount = 0;
+                shouldRetry = false;
+                do
                 {
-                    _logger.LogWarning(e, "Exception occurred during reading. Buffer: [{ReadBuffer}]", readBuffer);
+                    UsbEndpointReader reader = device.OpenEndpointReader(LibUsbDotNet.Main.ReadEndpointID.Ep01);
+                    try
+                    {
+                        readResult = reader.Read(readBuffer, 100, out int responseDataSize);
+
+                        if (readResult == Error.Io)
+                        {
+                            CloseAndOpen(device);
+                            shouldRetry = retryCount++ < 2;
+                        }
+                        else if (writeResult == Error.Success)
+                        {
+                            shouldRetry = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning(e, "Exception occurred during reading. Buffer: [{ReadBuffer}]", readBuffer);
+                        return;
+                    }
+                } while (shouldRetry);
+
+                if (readResult != Error.Success)
+                {
+                    _logger.LogWarning("An error occurred while reading. Result: [{ReadResult}])", readResult);
                     return;
                 }
 
@@ -236,6 +272,23 @@ namespace BLL
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Close and open the device
+        /// </summary>
+        /// <param name="device">The device</param>
+        private static void CloseAndOpen(IUsbDevice device)
+        {
+            if (device.IsOpen)
+            {
+                device.Close();
+            }
+
+            device.Open();
+            ((UsbDevice)device).DetachFromKernel(device.Configs[0].Interfaces[0].Number);
+            device.SetConfiguration(device.Configs[0].ConfigurationValue);
+            device.ClaimInterface(device.Configs[0].Interfaces[0].Number);
         }
 
         /// <summary>
