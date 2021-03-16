@@ -33,6 +33,11 @@ namespace BLL
         private static readonly object _discoveryLock;
 
         /// <summary>
+        /// The vendor id for Concept2 hardware
+        /// </summary>
+        private const int VendorId = 0x17A4;
+
+        /// <summary>
         /// The logger
         /// </summary>
         private readonly ILogger<PMCommunicator> _logger;
@@ -106,7 +111,7 @@ namespace BLL
                 UsbDeviceCollection? usbDeviceCollection = _context.List();
 
                 // Filter out all but Concept2 Vendor
-                var discoveredDevices = usbDeviceCollection.Where(d => d.VendorId == 0x17A4);
+                var discoveredDevices = usbDeviceCollection.Where(d => d.VendorId == VendorId);
 
                 // Discover disconnected devices
                 foreach (UsbDevice detachedDevice in _devices.Values.Except(discoveredDevices, new IUsbDeviceComparer()))

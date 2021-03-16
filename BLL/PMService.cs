@@ -13,11 +13,6 @@ namespace BLL
     public class PMService : IPMService
     {
         /// <summary>
-        /// The vendor id for Concept2 hardware
-        /// </summary>
-        private const int VendorId = 0x17A4;
-
-        /// <summary>
         /// The logger
         /// </summary>
         private readonly ILogger<PMService> _logger;
