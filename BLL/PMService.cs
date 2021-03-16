@@ -1,107 +1,102 @@
-﻿using BLL.Communication;
-using PM.BO.Commands;
+﻿using Microsoft.Extensions.Logging;
+using PM.BO.Enums;
 using PM.BO.EventArguments;
 using PM.BO.Interfaces;
-using LibUsbDotNet.LibUsb;
-using Microsoft.Extensions.Logging;
-using PM.BO;
-using PM.BO.Comparers;
-using PM.BO.Enums;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace BLL
 {
+    /// <summary>
+    /// The PM Service initiating & handling access and data to the PM
+    /// </summary>
     public class PMService : IPMService
     {
+        /// <summary>
+        /// The vendor id for Concept2 hardware
+        /// </summary>
         private const int VendorId = 0x17A4;
-        private readonly ILogger<PMService> _logger;
-        private readonly ILoggerFactory _loggerFactory;
-        private readonly IPMCommunicator _pmCommunicator;
-        private readonly IPMPollingService _pmPollingService;
-        private readonly ICommandListFactory _commandListFactory;
 
+        /// <summary>
+        /// The logger
+        /// </summary>
+        private readonly ILogger<PMService> _logger;
+
+        /// <summary>
+        /// The communicator service
+        /// </summary>
+        private readonly IPMCommunicator _pmCommunicator;
+
+        /// <summary>
+        /// The polling service
+        /// </summary>
+        private readonly IPMPollingService _pmPollingService;
+
+        /// <inheritdoc />
         public event EventHandler? DeviceFound
         {
             add { _pmCommunicator.DeviceFound += value; }
             remove { _pmCommunicator.DeviceFound -= value; }
         }
+
+        /// <inheritdoc />
         public event EventHandler? DeviceLost
         {
             add { _pmCommunicator.DeviceLost += value; }
             remove { _pmCommunicator.DeviceLost -= value; }
         }
 
-        private static readonly object _discoveryLock = new object();
 
+        /// <inheritdoc />
         public event EventHandler? PollReturned
         {
             add { _pmPollingService.PollReturned += value; }
             remove { _pmPollingService.PollReturned -= value; }
         }
 
-        public PMService(IPMCommunicator pmCommunicator, IPMPollingService pmPollingService, ICommandListFactory commandListFactory, ILogger<PMService> logger)
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="pmCommunicator">The communicator service</param>
+        /// <param name="pmPollingService">The polling service</param>
+        /// <param name="logger">The logger</param>
+        public PMService(IPMCommunicator pmCommunicator, IPMPollingService pmPollingService, ILogger<PMService> logger)
         {
             _logger = logger;
             _pmCommunicator = pmCommunicator;
             _pmPollingService = pmPollingService;
-            _commandListFactory = commandListFactory;
 
             _pmCommunicator.DeviceLost += OnDeviceLost;
         }
 
+        /// <summary>
+        /// Deconstructor
+        /// </summary>
         ~PMService()
         {
-            
+            _pmPollingService.StopPolling();
         }
 
-        public void QuickTest()
-        {
-            IEnumerable<(int BusNumber, int Address)> locations = Discover();
-            (int BusNumber, int Address) location = locations.First();
-
-            ICommandList commands = _commandListFactory.Create();
-            commands.AddRange(new ICommand[]
-            {
-                //new SetHorizontalDistanceCommand(5000, UnitType.Meters),
-                //new SetSplitDurationDistanceCommand(150),
-                //new SetPowerTargetCommand(150),
-                //new SetProgramCommand(ProgrammedWorkout.Programmed),
-                //new SetMachineStateInUseCommand()
-
-                //new SetWorkoutTimeCommand(new uint[] {0x00, 0x07, 0x1E}),
-
-                //new SetSplitDurationDistanceCommand(new uint[] {0x64, 0x00, 0x00, 0x00})
-                new GetCadenceCommand(),
-                new GetPowerCommand(),
-                new GetUserInfoCommand(),
-                new GetPaceCommand(),
-                new GetStrokeStateCommand(),
-                new GetWorkDistanceCommand(),
-                new GetProductVersionCommand()
-            });
-            commands.Prepare();
-
-            _pmCommunicator.Send(location, commands);
-        }
-
+        /// <inheritdoc />
         public IEnumerable<(int BusNumber, int Address)> Discover()
         {
             return _pmCommunicator.Discover();
         }
 
+        /// <inheritdoc />
         public void StartAutoDiscovery(int secondsBetweenDiscovery = 10)
         {
             _pmCommunicator.StartAutoDiscovery(secondsBetweenDiscovery);
         }
 
+        /// <inheritdoc />
         public void StopAutoDiscovery()
         {
             _pmCommunicator.StopAutoDiscovery();
         }
 
-        public void Poll((int BusNumber, int Address) location)
+        /// <inheritdoc />
+        public void StartPolling((int BusNumber, int Address) location)
         {
             _logger.LogInformation("Establishing polling intervals.");
 
@@ -117,7 +112,26 @@ namespace BLL
             _pmPollingService.StartPolling(location, pollIntervals);
         }
 
-        private void OnDeviceLost(object? sender, EventArgs args)
+        /// <inheritdoc />
+        public void StopPolling((int BusNumber, int Address)? location = null)
+        {
+            if (location.HasValue)
+            {
+                _logger.LogInformation("Stopping polling on location [{Location}].", location);
+            }
+            else
+            {
+                _logger.LogInformation("Stopping polling on all locations.");
+            }
+
+            _pmPollingService.StopPolling(location);
+        }
+
+        /// <summary>
+        /// Handles cleanup actions when a device is lost
+        /// </summary>
+        /// <param name="args">Information about the lost device</param>
+        private void OnDeviceLost(object? _, EventArgs args)
         {
             if (args is not DeviceEventArgs deviceArgs)
             {

@@ -4,19 +4,32 @@ using PM.BO.Interfaces;
 
 namespace PM.BLL.Factories
 {
+    /// <summary>
+    /// Generates CommandLists on demand with appropriate logging
+    /// </summary>
     public class CommandListFactory : ICommandListFactory
     {
-        private readonly ILoggerFactory _loggerFactory;
+        /// <summary>
+        /// The logger
+        /// </summary>
         private readonly ILogger<CommandListFactory> _logger;
+
+        /// <summary>
+        /// The logger for CommandList
+        /// </summary>
         private readonly ILogger<CommandList> _commandListLogger;
 
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory</param>
         public CommandListFactory(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<CommandListFactory>();
-            _loggerFactory = loggerFactory;
-            _commandListLogger = _loggerFactory.CreateLogger<CommandList>();
+            _commandListLogger = loggerFactory.CreateLogger<CommandList>();
         }
 
+        /// <inheritdoc />
         public ICommandList Create()
         {
             return new CommandList(_commandListLogger);

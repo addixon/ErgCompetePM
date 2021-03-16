@@ -2,7 +2,8 @@
 {
     public enum Gender
     {
-        Male = 0x00,
-        Female = 0x01
+        None = 0x00,
+        Male = 0x01,
+        Female = 0x02
     }
 }

@@ -2,10 +2,21 @@
 
 namespace BLL.Helpers
 {
+	/// <summary>
+	/// A locking dictionary specifically for devices
+	/// </summary>
 	internal class DeviceLocker
 	{
-		private readonly ConcurrentDictionary<(int, int), object> _dictionary = new ConcurrentDictionary<(int, int), object>();
+		/// <summary>
+		/// The dictionary holding the lock objects
+		/// </summary>
+		private readonly ConcurrentDictionary<(int, int), object> _dictionary = new();
 
-		public object this[(int BusNumber, int address) hubAddress] => _dictionary.GetOrAdd(hubAddress, _ => new object());
+		/// <summary>
+		/// Returns or sets the lock object
+		/// </summary>
+		/// <param name="location">The location of the device</param>
+		/// <returns>The lock object</returns>
+		public object this[(int BusNumber, int address) location] => _dictionary.GetOrAdd(location, _ => new object());
 	}
 }

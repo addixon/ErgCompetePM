@@ -1,72 +1,119 @@
-﻿using BLL.Communication;
-using PM.BO;
-using PM.BO.Commands;
-using PM.BO.EventArguments;
-using PM.BO.Interfaces;
-using LibUsbDotNet.LibUsb;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using PM.BO;
+using PM.BO.Configuration;
+using PM.BO.EventArguments;
+using PM.BO.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ErgCompetePM
 {
+    /// <summary>
+    /// The program
+    /// </summary>
+    /// <remarks>
+    /// Initiates communication with and polling on all connected PMs
+    /// </remarks>
     internal class Program : IHostedService
     {
-        private static readonly object _displayLock = new object();
+        /// <summary>
+        /// Ensures the display is only refreshed by a single thread at a time
+        /// </summary>
+        private static readonly object _displayLock;
 
+        /// <summary>
+        /// The PM Service
+        /// </summary>
         private readonly IPMService _pmService;
+
+        /// <summary>
+        /// The logger
+        /// </summary>
         private readonly ILogger<Program> _logger;
-        private Timer _hubConnectTimer;
-        private bool _isHubConnected = false;
 
+        /// <summary>
+        /// The configuration for the program
+        /// </summary>
+        private readonly ProgramConfiguration _configuration;
+
+        /// <summary>
+        /// The SignalR hub connection
+        /// </summary>
         private HubConnection? _hubConnection;
+        
+        /// <summary>
+        /// Timer to ensure that the hub remains as connected as possible
+        /// </summary>
+        private Timer? _hubConnectionTimer;
 
-        public Program(IPMService pmService, ILogger<Program> logger)
+        /// <summary>
+        /// Static constructor
+        /// </summary>
+        static Program()
+        {
+            _displayLock = new();
+        }
+
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="pmService">The PM service</param>
+        /// <param name="configuration">Program configuration</param>
+        /// <param name="logger">The logger</param>
+        public Program(IPMService pmService, IOptions<ProgramConfiguration> configuration, ILogger<Program> logger)
         {
             _logger = logger;
             _pmService = pmService;
+            _configuration = configuration.Value;
         }
 
+        /// <inheritdoc/>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting Program...");
 
-            _hubConnectTimer = new Timer(InitiateHub, cancellationToken, 0, 30000);
+            // Uncomment the below 2 lines to leverage SignalR. An active hub is required to be listening for data
+            //_hubConnectionTimer = new Timer(InitiateHub, cancellationToken, 0, 30000);
+            //_pmService.PollReturned += RefreshHub;
+
             _pmService.DeviceFound += StartMonitoringDevice;
             _pmService.DeviceLost += StopMonitoringDevice;
             _pmService.PollReturned += RefreshScreen;
-            _pmService.PollReturned += RefreshHub;
             _pmService.StartAutoDiscovery();
 
             // Run forever
             do { } while (true);
         }
 
+        /// <inheritdoc/>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            // Empty
+            _hubConnectionTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+            _pmService.StopAutoDiscovery();
         }
 
+        /// <summary>
+        /// Initiates the connection with the SignalR hub
+        /// </summary>
+        /// <param name="state">The program cancellation token</param>
         private void InitiateHub(object? state)
         {
-            if (_isHubConnected)
+            if (_hubConnection?.State == HubConnectionState.Connected)
             {
                 return;
             }
 
             if (state == null)
             {
-                throw new ArgumentNullException("State was null when initiating hub");
+                throw new ArgumentNullException(nameof(state), "State was null when initiating hub");
             }
 
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl("http://ergcompete.azurewebsites.net/erg")
-                //.WithUrl("http://localhost:49574/erg")
+                .WithUrl(_configuration.SignalRHubEndpoint)
                 .WithAutomaticReconnect()
                 .Build();
 
@@ -80,7 +127,11 @@ namespace ErgCompetePM
             }
         }
 
-        private void RefreshHub(object? sender, EventArgs args)
+        /// <summary>
+        /// Sends data to the hub
+        /// </summary>
+        /// <param name="args">The poll data arguments to send to hub</param>
+        private void RefreshHub(object? _, EventArgs args)
         {
             if (args == null)
             {
@@ -92,17 +143,22 @@ namespace ErgCompetePM
                 throw new Exception("Unexpected event arguments.");
             }
 
-            Task.Run(async () =>
-            {
-                PerformanceMonitor pm = new PerformanceMonitor
-                {
-                    Data = pollArgs.Data ?? new PMData()
-                };
-                await _hubConnection.InvokeAsync("UpdateErg", pm).ConfigureAwait(false);
-            });
+            _ = Task.Run(async () =>
+              {
+                  PerformanceMonitor pm = new()
+                  {
+                      Data = pollArgs.Data ?? new PMData()
+                  };
+
+                  await _hubConnection.InvokeAsync("UpdateErg", pm).ConfigureAwait(false);
+              });
         }
 
-        private void StartMonitoringDevice(object? sender, EventArgs args)
+        /// <summary>
+        /// Starts polling for a found device
+        /// </summary>
+        /// <param name="args">The device details</param>
+        private void StartMonitoringDevice(object? _, EventArgs args)
         {
             if (args == null)
             {
@@ -114,15 +170,33 @@ namespace ErgCompetePM
                 throw new Exception("Unexpected event arguments.");
             }
 
-            _pmService.Poll(deviceArgs.Location);
+            _pmService.StartPolling(deviceArgs.Location);
         }
 
-        private void StopMonitoringDevice(object? sender, EventArgs args)
+        /// <summary>
+        /// Handles device loss
+        /// </summary>
+        /// <param name="args">The device details</param>
+        private void StopMonitoringDevice(object? _, EventArgs args)
         {
+            if (args == null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
 
+            if (args is not DeviceEventArgs _)
+            {
+                throw new Exception("Unexpected event arguments.");
+            }
+
+            // Do nothing at this time. Polling has been stopped by PMService
         }
 
-        private void RefreshScreen(object? sender, EventArgs args)
+        /// <summary>
+        /// Refreshes the display with the latest poll data
+        /// </summary>
+        /// <param name="args">The poll data</param>
+        private void RefreshScreen(object? _, EventArgs args)
         {
             if (args == null)
             {
@@ -143,7 +217,7 @@ namespace ErgCompetePM
                     throw new Exception("Empty poll data");
                 }
 
-                Console.WriteLine("HubConnection: " + _hubConnection.State);
+                Console.WriteLine("HubConnection: " + _hubConnection?.State);
                 Console.WriteLine("Location: " + pollArgs.Location);
 
                 Console.WriteLine("Stroke State: " + pollArgs.Data.StrokeState);

@@ -1,22 +1,27 @@
-﻿using BLL.Communication;
-using BLL.Extensions;
+﻿using BLL.Extensions;
+using Microsoft.Extensions.Logging;
 using PM.BO;
 using PM.BO.Commands;
-using PM.BO.EventArguments;
 using PM.BO.Enums;
+using PM.BO.EventArguments;
 using PM.BO.Interfaces;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Caching;
 using System.Threading;
-using PM.BLL.Factories;
 
 namespace BLL
 {
+    /// <summary>
+    /// Handles interval polling on the PM
+    /// </summary>
     public class PMPollingService : IPMPollingService
     {
+        /// <summary>
+        /// List of standard poll commands at defined intervals
+        /// </summary>
         private static readonly IDictionary<PollInterval, IList<ICommand>> _pollIntervals = new Dictionary<PollInterval, IList<ICommand>>
             {
             #region 100Hz
@@ -55,25 +60,53 @@ namespace BLL
             #endregion
         };
 
-        private static bool _currentlyPolling = false;
-        private static readonly ConcurrentDictionary<(int BusNumber, int Address), Timer> _activePolls = new ConcurrentDictionary<(int BusNumber, int Address), Timer>();
-        private static readonly ConcurrentDictionary<(int BusNumber, int Address), PMData> _data = new ConcurrentDictionary<(int BusNumber, int Address), PMData>();
+        /// <summary>
+        /// Seconds between checking for current workout state
+        /// </summary>
+        private const int WorkoutStateCheckInterval = 30;
 
+        /// <summary>
+        /// Locations that have active polls
+        /// </summary>
+        private static readonly ConcurrentDictionary<(int BusNumber, int Address), Timer> _activePolls = new();
+        
+        /// <summary>
+        /// PM Data for each location
+        /// </summary>
+        private static readonly ConcurrentDictionary<(int BusNumber, int Address), PMData> _data = new();
+        
+        /// <summary>
+        /// The logger
+        /// </summary>
         private readonly ILogger<PMPollingService> _logger;
-        private readonly ILoggerFactory _loggerFactory;
+
+        /// <summary>
+        /// The Communicator service
+        /// </summary>
         private readonly IPMCommunicator _pmCommunicator;
 
-        public event EventHandler? PollReturned;
-        private ICommandListFactory _commandListFactory;
+        /// <summary>
+        /// The command list factory
+        /// </summary>
+        private readonly ICommandListFactory _commandListFactory;
 
-        public PMPollingService(IPMCommunicator pmCommunicator, ICommandListFactory commandListFactory, ILoggerFactory loggerFactory)
+        /// <inheritdoc />
+        public event EventHandler? PollReturned;
+        
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="pmCommunicator">The PM Communicator</param>
+        /// <param name="commandListFactory">The command list factory</param>
+        /// <param name="logger">The logger</param>
+        public PMPollingService(IPMCommunicator pmCommunicator, ICommandListFactory commandListFactory, ILogger<PMPollingService> logger)
         {
-            _logger = loggerFactory.CreateLogger<PMPollingService>();
-            _loggerFactory = loggerFactory;
+            _logger = logger;
             _pmCommunicator = pmCommunicator;
             _commandListFactory = commandListFactory;
         }
 
+        /// <inheritdoc />
         public void StartPolling((int BusNumber, int Address) location, IEnumerable<PollInterval> pollIntervals)
         {
             if (pollIntervals == null)
@@ -95,7 +128,7 @@ namespace BLL
                 return;
             }
 
-            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+            CancellationTokenSource cancellationTokenSource = new();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
             Timer timer = CreatePollTimer(location, pollIntervals);
@@ -103,38 +136,34 @@ namespace BLL
             _activePolls.TryAdd(location, timer);
         }
 
-        public bool IsActive((int BusNumber, int Address) location)
+        /// <inheritdoc />
+        public void StopPolling((int BusNumber, int Address)? location = null)
         {
-            return _activePolls.ContainsKey(location);
-        }
-
-        private Timer CreatePollTimer((int BusNumber, int Address) location, IEnumerable<PollInterval> pollIntervals)
-        {
-            const ushort MillisecondsBetweenTrigger = 10;
-            PollState state = new PollState(location)
+            if (!location.HasValue)
             {
-                ExecutionStartTime = DateTime.UtcNow,
-                PollIntervals = pollIntervals
-            };
+                // stop all polling
+                foreach ((int BusNumber, int Address) pollLocation in _activePolls.Keys)
+                {
+                    // stop polling on single active location
+                    StopPolling(pollLocation);
+                }
 
-            return new Timer(HandlePollTimer, state, 0, MillisecondsBetweenTrigger);
-        }
+                return;
+            }
 
-        public void StopPolling((int BusNumber, int Address) location)
-        {
-            if (!_activePolls.ContainsKey(location))
+            if (!_activePolls.ContainsKey(location.Value))
             {
                 _logger.LogWarning("A poll was attempted to be stopped, but was not running for location [{Location}].", location);
                 return;
             }
 
             // Remove the task
-            bool removeResult = _activePolls.Remove(location, out Timer? timer);
+            bool removeResult = _activePolls.Remove(location.Value, out Timer? timer);
 
-            if (!removeResult) 
+            if (!removeResult)
             {
                 _logger.LogWarning("A poll was attempted to be stopped for location [{Location}], but was not found.", location);
-                return; 
+                return;
             }
 
             if (timer == null)
@@ -147,13 +176,73 @@ namespace BLL
             timer.Dispose();
         }
 
-        private void HandlePollTimer(object? stateInfo)
+        /// <inheritdoc />
+        public bool IsActive((int BusNumber, int Address) location)
         {
-            if (_currentlyPolling)
+            return _activePolls.ContainsKey(location);
+        }
+
+        /// <summary>
+        /// Creates a poll timer for the specified location
+        /// </summary>
+        /// <param name="location">The location</param>
+        /// <param name="pollIntervals">The intervals to poll for</param>
+        /// <returns>The created timer</returns>
+        private Timer CreatePollTimer((int BusNumber, int Address) location, IEnumerable<PollInterval> pollIntervals)
+        {
+            const ushort MillisecondsBetweenTrigger = 10;
+            PollState state = new(location)
             {
-                return;
+                ExecutionStartTime = DateTime.UtcNow,
+                PollIntervals = pollIntervals
+            };
+
+            return new Timer(HandlePollTimer, state, 0, MillisecondsBetweenTrigger);
+        }
+
+        /// <summary>
+        /// Updates the workout state stored in cache
+        /// </summary>
+        /// <param name="args">The update arguments</param>
+        private void UpdateWorkoutState(CacheEntryUpdateArguments args)
+        {
+            string[] locationString = args.Key.Split('.');
+
+            (int BusNumber, int Address) location = (int.Parse(locationString[0]), int.Parse(locationString[1]));
+
+            args.UpdatedCacheItem.Value = GetWorkoutState(location);
+        }
+
+        /// <summary>
+        /// Gets the current workout state for a specified location
+        /// </summary>
+        /// <param name="location">The location</param>
+        /// <returns>The current workout state</returns>
+        private WorkoutState GetWorkoutState((int BusNumber, int Address) location)
+        {
+            ICommandList commands = _commandListFactory.Create();
+            commands.Add(new GetWorkoutStateCommand());
+            commands.Prepare();
+
+            try
+            {
+                _pmCommunicator.Send(location, commands);
+            }
+            catch (Exception e)
+            {
+                _logger.LogWarning(e, "Error occurred while checking workout state prior to polling");
+                return WorkoutState.WaitingToBegin;
             }
 
+            return commands.First().Value;
+        }
+
+        /// <summary>
+        /// Listener for the poll timer interval
+        /// </summary>
+        /// <param name="stateInfo">The state of the timer, containing location</param>
+        private void HandlePollTimer(object? stateInfo)
+        {
             if (stateInfo == null)
             {
                 _logger.LogWarning("State must be provided to [{MethodName}]. No action is being taken for this interval.", nameof(HandlePollTimer));
@@ -166,7 +255,39 @@ namespace BLL
                 return;
             }
 
-            _currentlyPolling = true;
+            ICommandList commands = _commandListFactory.Create();
+
+            string cacheKey = $"{pollState.Location.BusNumber}.{pollState.Location.Address}";
+            ObjectCache workoutStateCache = MemoryCache.Default;
+            WorkoutState? workoutState = workoutStateCache[cacheKey] as WorkoutState?;
+                
+            if (workoutState == null)
+            {
+                CacheItemPolicy policy = new()
+                {
+                    AbsoluteExpiration = DateTime.UtcNow.AddSeconds(WorkoutStateCheckInterval),
+                    UpdateCallback = UpdateWorkoutState
+                };
+
+                workoutState = GetWorkoutState(pollState.Location);
+                workoutStateCache.Set(cacheKey, workoutState, policy);
+            }
+            else
+            {
+                workoutState = workoutStateCache[cacheKey] as WorkoutState?;
+            }
+
+            if (workoutState == null)
+            {
+                _logger.LogWarning("Workout state could not be found. Polling not performed.");
+                return;
+            }
+
+            int workoutStateValue = (int) workoutState;
+            if (workoutStateValue < 1 || workoutStateValue > 9)
+            {
+                return;
+            }
 
             // Collect the intervals to execute for this iteration
             IEnumerable<PollInterval> pollIntervals = CollectPollIntervals(pollState.Iterations++);
@@ -195,10 +316,13 @@ namespace BLL
                     pollState.Iterations = 0;
                 }
             }
-
-            _currentlyPolling = false;
         }
 
+        /// <summary>
+        /// Updates data in the PM with the results from the poll
+        /// </summary>
+        /// <param name="location">The location</param>
+        /// <param name="results">The poll results</param>
         private static void UpdateData((int BusNumber, int Address) location, ICommandList? results)
         {
             if (!_data.ContainsKey(location))
@@ -212,6 +336,11 @@ namespace BLL
             }
         }
 
+        /// <summary>
+        /// Gathers appropriate poll intervals based on intended frequency
+        /// </summary>
+        /// <param name="iteration">The current timer iteration</param>
+        /// <returns>The poll intervals to poll for</returns>
         private static IEnumerable<PollInterval> CollectPollIntervals(ushort iteration)
         {
             IList<PollInterval> pollIntervals = new List<PollInterval>();
@@ -239,6 +368,12 @@ namespace BLL
             return pollIntervals;
         }
 
+        /// <summary>
+        /// Actually polls the device
+        /// </summary>
+        /// <param name="location">The location</param>
+        /// <param name="pollIntervals">The intervals to poll for</param>
+        /// <returns>The populated commands</returns>
         private ICommandList? ExecutePoll((int BusNumber, int Address) location, IEnumerable<PollInterval> pollIntervals)
         {
             ICommandList commands = _commandListFactory.Create();

@@ -6,9 +6,27 @@ using System.Collections.Generic;
 
 namespace BLL.Helpers
 {
+    /// <summary>
+    /// Creates specific exception objects based on error code
+    /// </summary>
     public class ExceptionActivator : IExceptionActivator
     {
-        private static readonly IDictionary<short, Type>? Exceptions = new Dictionary<short, Type>
+        /// <summary>
+        /// Dictionary of all known CSAFE error codes and their cooresponding exception type
+        /// </summary>
+        private static readonly IDictionary<short, Type>? _exceptions;
+
+        /// <summary>
+        /// The logger
+        /// </summary>
+        private readonly ILogger<ExceptionActivator> _logger;
+
+        /// <summary>
+        /// Static constructor
+        /// </summary>
+        static ExceptionActivator()
+        {
+            _exceptions = new Dictionary<short, Type>
             {
                 #region Exceptions
                 { -120, typeof(TKCMDPR_INVALID_MSG_TYPE) },
@@ -272,31 +290,35 @@ namespace BLL.Helpers
                 { -3000, typeof(TKTSTGEN_NO_UNUSED_FILE_ERR) }
                 #endregion
             };
+        }
 
-        private readonly ILogger<ExceptionActivator> _logger;
-
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="logger">The logger</param>
         public ExceptionActivator(ILogger<ExceptionActivator> logger)
         {
             _logger = logger;
         }
 
+        /// <inheritdoc />
         public Exception CreateException(short code)
         {
-            if (Exceptions == null)
+            if (_exceptions == null)
             {
                 Exception e = new InvalidOperationException("An exception was attempted to be created, but the known list of error codes was null.");
                 LogError(e);
                 throw e;
             }
 
-            if (!Exceptions.ContainsKey(code))
+            if (!_exceptions.ContainsKey(code))
             {
                 Exception e = new UnknownException(code);
                 LogError(e);
                 throw e;
             }
 
-            Type exceptionType = Exceptions[code];
+            Type exceptionType = _exceptions[code];
 
             if (exceptionType == null)
             {
@@ -317,6 +339,10 @@ namespace BLL.Helpers
             return (Exception) exception;
         }
 
+        /// <summary>
+        /// Logs an error that happened in this class
+        /// </summary>
+        /// <param name="e">The exception</param>
         private void LogError(Exception e)
         {
             _logger.LogError(e, "Exception occurred in [{MethodName}]", nameof(CreateException));

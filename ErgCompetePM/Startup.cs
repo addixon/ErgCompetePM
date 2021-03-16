@@ -14,6 +14,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using PM.BLL.Factories;
+using PM.BO.Configuration;
 
 namespace ErgCompetePM
 {
@@ -84,7 +85,7 @@ namespace ErgCompetePM
             serviceCollection.AddSingleton<ILoggerFactory, LoggerFactory>();
 
             // Add configuration
-            //serviceCollection.Configure<GAPIConfiguration>(hostBuilderContext.Configuration.GetSection("GAPI"));
+            serviceCollection.Configure<ProgramConfiguration>(hostBuilderContext.Configuration.GetSection("Program"));
         }
     }
 }

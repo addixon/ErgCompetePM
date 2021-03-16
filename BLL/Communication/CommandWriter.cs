@@ -6,15 +6,15 @@ using System.Linq;
 
 namespace BLL.Communication
 {
+    /// <summary>
+    /// Handles writing a command into the buffer
+    /// </summary>
     public class CommandWriter : CommunicationBuffer<uint>, ICommandWriter
     {
+        /// <inheritdoc />
         protected override BufferType BufferType => BufferType.Write;
 
-        public CommandWriter() : base()
-        {
-
-        }
-
+        /// <inheritdoc/>
         public void WriteByte(uint value)
         {
             EnsureAvailableSpace(0);
@@ -23,6 +23,7 @@ namespace BLL.Communication
             Position++;
         }
 
+        /// <inheritdoc/>
         public void WriteBytes(uint[] value)
         {
             EnsureAvailableSpace(value.Length);
@@ -31,6 +32,7 @@ namespace BLL.Communication
             Position += value.Length;
         }
 
+        /// <inheritdoc/>
         public void WriteBytes(IEnumerable<uint> value)
         {
             int size = value.Count();
@@ -40,6 +42,10 @@ namespace BLL.Communication
             Position += size;
         }
 
+        /// <summary>
+        /// Ensures that space in the buffer is available
+        /// </summary>
+        /// <param name="spaceRequired">The space required</param>
         private void EnsureAvailableSpace(int spaceRequired)
         {
             if (PositionsRemaining() - spaceRequired <= 0)

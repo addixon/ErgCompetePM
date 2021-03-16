@@ -14,28 +14,62 @@ using System.Threading;
 
 namespace BLL
 {
+    /// <summary>
+    /// Handles communication with a PM via CSAFE commands
+    /// </summary>
     public class PMCommunicator : IPMCommunicator
     {
         /// <summary>
         /// Locker for pm communication
         /// </summary>
         /// <remarks>
-        /// Locks are created for each unique Hub/Address combination
+        /// Locks are created for each unique Hub/Address combination to control communication flow
         /// </remarks>
-        private static readonly DeviceLocker _deviceLocker = new DeviceLocker();
-        private readonly ILogger<PMCommunicator> _logger;
-        private static readonly ConcurrentDictionary<(int BusNumber, int Address), DateTime> _lastSends;
-        private readonly ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice> _devices;
-        private readonly ConcurrentDictionary<(int BustNumber, int Address), (UsbEndpointReader Reader, UsbEndpointWriter writer)> _endpoints; private readonly UsbContext _context;
+        private static readonly DeviceLocker _deviceLocker;
 
+        /// <summary>
+        /// Lock to ensure that discovery is not occurring at the same time
+        /// </summary>
+        private static readonly object _discoveryLock;
+
+        /// <summary>
+        /// The logger
+        /// </summary>
+        private readonly ILogger<PMCommunicator> _logger;
+        
+        /// <summary>
+        /// Catalog of last sends to the device to ensure the device is not overwhelmed
+        /// </summary>
+        private static readonly ConcurrentDictionary<(int BusNumber, int Address), DateTime> _lastSends;
+        
+        /// <summary>
+        /// Active devices
+        /// </summary>
+        private readonly ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice> _devices;
+        
+        /// <summary>
+        /// The usb context
+        /// </summary>
+        private readonly UsbContext _context;
+
+        /// <summary>
+        /// Configurable timer to trigger autodiscovery
+        /// </summary>
         private readonly Timer _discoveryTimer;
 
+        /// <inheritdoc />
         public event EventHandler? DeviceFound;
-        public event EventHandler? DeviceLost;
-        private readonly object _discoveryLock = new object();
 
+        /// <inheritdoc />
+        public event EventHandler? DeviceLost;
+        
+        /// <summary>
+        /// Static constructor
+        /// </summary>
         static PMCommunicator ()
         {
+            _deviceLocker = new();
+            _discoveryLock = new();
             _lastSends = new ConcurrentDictionary<(int BusNumber, int Address), DateTime>();
         }
 
@@ -48,21 +82,23 @@ namespace BLL
         {
             _logger = logger;
             _context = new UsbContext();
-            _endpoints = new ConcurrentDictionary<(int BusNumber, int Address), (UsbEndpointReader Reader, UsbEndpointWriter writer)>();
             _devices = new ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice>();
             _discoveryTimer = new Timer(InitiateDiscovery, null, Timeout.Infinite, Timeout.Infinite);
         }
 
+        /// <inheritdoc />
         public void StartAutoDiscovery(int secondsBetweenDiscovery = 10)
         {
             _discoveryTimer.Change(0, secondsBetweenDiscovery * 1000);
         }
 
+        /// <inheritdoc />
         public void StopAutoDiscovery()
         {
             _discoveryTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
+        /// <inheritdoc />
         public IEnumerable<(int BusNumber, int Address)> Discover()
         {
             lock (_discoveryLock)
@@ -78,10 +114,7 @@ namespace BLL
                     (int BusNumber, int Address) location = (detachedDevice.BusNumber, detachedDevice.Address);
 
                     // If events are enabled, fire one for the device being lost
-                    EventArgs args = new DeviceEventArgs
-                    {
-                        Location = location
-                    };
+                    EventArgs args = new DeviceEventArgs(location);
 
                     DeviceLost?.Invoke(this, args);
 
@@ -107,14 +140,10 @@ namespace BLL
                     foundDevice.SetConfiguration(foundDevice.Configs[0].ConfigurationValue);
                     foundDevice.ClaimInterface(foundDevice.Configs[0].Interfaces[0].Number);
 
-                    UsbEndpointReader reader = foundDevice.OpenEndpointReader(LibUsbDotNet.Main.ReadEndpointID.Ep01);
-                    UsbEndpointWriter writer = foundDevice.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
-                    _endpoints[location] = (reader, writer);
-
                     // If events are enabled, fire one for the device being found
-                    EventArgs args = new DeviceEventArgs
+                    EventArgs args = new DeviceEventArgs(location)
                     {
-                        Location = location
+                        SerialNumber = foundDevice.Info.SerialNumber
                     };
 
                     DeviceFound?.Invoke(this, args);
@@ -127,11 +156,12 @@ namespace BLL
             }
         }
 
+        /// <inheritdoc />
         public void Send((int BusNumber, int Address) location, ICommandList commands)
         {
             if (!commands.CanSend)
             {
-                Exception e = new InvalidOperationException("CommandList was not made ready before Send was called");
+                InvalidOperationException e = new("CommandList was not made ready before Send was called");
                 _logger.LogError(e, "Send failed.");
                 throw e;
             }
@@ -152,8 +182,10 @@ namespace BLL
                     Thread.Sleep(delayInMilliseconds - (int) millisecondsSinceLastSend);
                 }
 
-                (UsbEndpointReader reader, UsbEndpointWriter writer) = _endpoints[location];
-                
+                IUsbDevice device = _devices[location];
+                UsbEndpointReader reader = device.OpenEndpointReader(LibUsbDotNet.Main.ReadEndpointID.Ep01);
+                UsbEndpointWriter writer = device.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
+
                 // Generate the write buffer and write to PM
                 // TODO: Find a way to allow the CommandList to be passed
                 byte[] writeBuffer = commands.Buffer.Select(b => (byte)b).ToArray();
@@ -201,6 +233,10 @@ namespace BLL
             }
         }
 
+        /// <summary>
+        /// Cleans up a device, releasing interfaces and closing connection
+        /// </summary>
+        /// <param name="device">The device to close</param>
         private void Destroy(IUsbDevice device)
         {
             try
@@ -215,11 +251,19 @@ namespace BLL
             }
         }
 
-        private void InitiateDiscovery(object? state)
+        /// <summary>
+        /// Initiates discovery
+        /// </summary>
+        private void InitiateDiscovery(object? _)
         {
             _ = Discover();
         }
 
+        /// <summary>
+        /// Checks if the device is valid and can be communicated with
+        /// </summary>
+        /// <param name="device">The device</param>
+        /// <returns>True if valid, false otherwise</returns>
         private bool IsValidDevice(IUsbDevice device)
         {
             if (device == null)
