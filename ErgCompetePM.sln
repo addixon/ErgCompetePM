@@ -15,8 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibUsbDotNet", "LibUsbDotNe
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C35067DE-7E55-45FC-8F8A-D5211E148B53}"
 	ProjectSection(SolutionItems) = preProject
+		bitbucket-pipelines.yml = bitbucket-pipelines.yml
 		global.json = global.json
 		LICENSE.txt = LICENSE.txt
+		PostDeploy.sh = PostDeploy.sh
 		readme.md = readme.md
 	EndProjectSection
 EndProject
