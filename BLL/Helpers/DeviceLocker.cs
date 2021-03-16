@@ -2,10 +2,10 @@
 
 namespace BLL.Helpers
 {
-	/// <summary>
-	/// A locking dictionary specifically for devices
-	/// </summary>
-	internal class DeviceLocker
+    /// <summary>
+    /// A locking dictionary specifically for devices
+    /// </summary>
+    internal class DeviceLocker
 	{
 		/// <summary>
 		/// The dictionary holding the lock objects

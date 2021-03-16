@@ -1,6 +1,6 @@
-﻿using PM.BO.Exceptions;
+﻿using Microsoft.Extensions.Logging;
+using PM.BO.Exceptions;
 using PM.BO.Interfaces;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 

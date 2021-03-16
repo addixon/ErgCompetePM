@@ -1,20 +1,15 @@
 ﻿using BLL;
 using BLL.Communication;
-using BLL.Helpers;
-using PM.BO.Enums;
-using PM.BO.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-
-using System.Data;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using PM.BLL.Factories;
 using PM.BO.Configuration;
+using PM.BO.Interfaces;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace ErgCompetePM
 {

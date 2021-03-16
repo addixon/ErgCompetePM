@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace BLL.Hubs
 {
+    /// <summary>
+    /// SignalR Hub Service
+    /// </summary>
     public class ErgHub : Hub<IErgClient>
     {
         /// <summary>
@@ -26,12 +29,14 @@ namespace BLL.Hubs
             return;
         }
 
+        /// <inheritdoc/>
         public override async Task OnConnectedAsync()
         {
             Console.WriteLine("Connected");
             await base.OnConnectedAsync();
         }
 
+        /// <inheritdoc/>
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             Console.WriteLine("Disconnected");

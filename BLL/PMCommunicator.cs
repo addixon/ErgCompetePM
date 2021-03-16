@@ -1,11 +1,11 @@
 ﻿using BLL.Communication;
 using BLL.Helpers;
-using PM.BO.EventArguments;
-using PM.BO.Interfaces;
 using LibUsbDotNet;
 using LibUsbDotNet.LibUsb;
 using Microsoft.Extensions.Logging;
 using PM.BO.Comparers;
+using PM.BO.EventArguments;
+using PM.BO.Interfaces;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
