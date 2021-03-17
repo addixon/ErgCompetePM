@@ -4,7 +4,7 @@
     {
         SCREENVALUEWORKOUT_NONE, /** None value (0). */
         PrepareToRowWorkout = 1, /** Prepare to workout type (1). */
-        SCREENVALUEWORKOUT_TERMINATEWORKOUT, /** Terminate workout type (2). */
+        TerminateWorkout = 2, /** Terminate workout type (2). */
         SCREENVALUEWORKOUT_REARMWORKOUT, /** Rearm workout type (3). */
         SCREENVALUEWORKOUT_REFRESHLOGCARD, /** Refresh local copies of logcard structures(4). */
         SCREENVALUEWORKOUT_PREPARETORACESTART, /** Prepare to race start (5). */

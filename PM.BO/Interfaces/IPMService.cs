@@ -72,6 +72,12 @@ namespace PM.BO.Interfaces
         void SetVariableWorkout(Location location, IEnumerable<Interval> intervals);
 
         /// <summary>
+        /// Terminate a workout
+        /// </summary>
+        /// <param name="location">Location of the device</param>
+        void TerminateWorkout(Location location);
+
+        /// <summary>
         /// Fires events each time a new device has been found.
         /// </summary>
         event EventHandler? DeviceFound;

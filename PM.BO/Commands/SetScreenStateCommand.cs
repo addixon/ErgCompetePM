@@ -6,6 +6,9 @@ namespace PM.BO.Commands
     /// <summary>
     /// Sets workout type
     /// </summary>
+    /// <remarks>
+    /// TODO: This will eventually need to support more screen states than the Workout category
+    /// </remarks>
     public class SetScreenStateCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SCREENSTATE;

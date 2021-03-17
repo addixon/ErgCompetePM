@@ -202,6 +202,15 @@ namespace BLL
             commandList.Prepare();
             _pmCommunicator.Send(location, commandList);
         }
+
+        /// <inheritdoc />
+        public void TerminateWorkout(Location location)
+        {
+            ICommandList commandList = _commandListFactory.Create();
+            commandList.Add(new SetScreenStateCommand(ScreenType.Workout, ScreenValueWorkout.TerminateWorkout));
+            commandList.Prepare();
+            _pmCommunicator.Send(location, commandList);
+        }
         #endregion
 
         /// <summary>
@@ -281,14 +290,15 @@ namespace BLL
                 return null;
             }
 
-            if (intervalList.Count < 2)
+            if (!intervalList.Any())
             {
-                _logger.LogError("At least two intervals must be defined. No workout has been set.");
+                _logger.LogError("At least one interval must be defined. No workout has been set.");
                 return null;
             }
 
-            List<ICommand> commands = new();
+            bool atLeastOneIntervalWithUndefinedRest = false;
 
+            List<ICommand> commands = new();
             for (int intervalNumber = 0; intervalNumber < intervalList.Count; intervalNumber++)
             {
                 Interval currentInterval = intervalList[intervalNumber];
@@ -314,6 +324,8 @@ namespace BLL
                     return null;
                 }
 
+                atLeastOneIntervalWithUndefinedRest = atLeastOneIntervalWithUndefinedRest || !workoutDetails.Value.RequireRest;
+
                 IEnumerable<ICommand>? intervalCommands = BuildInterval(currentInterval, workoutDetails.Value, false);
 
                 if (intervalCommands == null)
@@ -325,6 +337,16 @@ namespace BLL
                 commands.AddRange(intervalCommands);
 
                 commands.Add(new SetConfigureWorkoutCommand(WorkoutProgrammingMode.Enable));
+            }
+
+            if (atLeastOneIntervalWithUndefinedRest)
+            {
+                // Setting the SplitDurationDistance to 0 is necessary when at least one undefined rest interval is configured
+                commands.AddRange(new ICommand[]
+                {
+                    new SetWorkoutTypeCommand(WorkoutType.VariableIntervalUndefinedRest),
+                    new SetSplitDurationCommand(WorkoutDuration.Distance, 0)
+                });
             }
 
             commands.Add(new SetScreenStateCommand(ScreenType.Workout, ScreenValueWorkout.PrepareToRowWorkout));
@@ -415,52 +437,96 @@ namespace BLL
             bool requireRest = false;
             WorkoutDuration? workoutDuration = null;
 
-            switch (interval.WorkoutType)
+            if (interval.IntervalType != null && interval.WorkoutType == null)
             {
-                // Fixed, No Splits
-                case WorkoutType.FixedDistanceNoSplits:
-                    workoutDuration = WorkoutDuration.Distance;
-                    break;
-                case WorkoutType.FixedTimeNoSplits:
-                    workoutDuration = WorkoutDuration.Time;
-                    break;
+                switch(interval.IntervalType)
+                {
+                    // Variable intervals with rest
+                    case IntervalType.Calorie:
+                        workoutDuration = WorkoutDuration.Calories;
+                        requireRest = true;
+                        break;
+                    case IntervalType.Distance:
+                        workoutDuration = WorkoutDuration.Distance;
+                        requireRest = true;
+                        break;
+                    case IntervalType.Time:
+                        workoutDuration = WorkoutDuration.Time;
+                        requireRest = true;
+                        break;
+                    case IntervalType.WattMinute:
+                        workoutDuration = WorkoutDuration.WattMinutes;
+                        requireRest = true;
+                        break;
 
-                // Fixed, Splits
-                case WorkoutType.FixedCalorieWithSplits:
-                    workoutDuration = WorkoutDuration.Calories;
-                    requireSplits = true;
-                    break;
-                case WorkoutType.FixedDistanceWithSplits:
-                    workoutDuration = WorkoutDuration.Distance;
-                    requireSplits = true;
-                    break;
-                case WorkoutType.FixedTimeWithSplits:
-                    workoutDuration = WorkoutDuration.Time;
-                    requireSplits = true;
-                    break;
-                case WorkoutType.FixedWattMinuteWithSplits:
-                    workoutDuration = WorkoutDuration.WattMinutes;
-                    requireSplits = true;
-                    break;
+                    // Variable intervals without rest. Mandated 0:00
+                    case IntervalType.CalorieUndefinedRest:
+                        workoutDuration = WorkoutDuration.Calories;
+                        interval.SecondsOfRest = 0;
+                        break;
+                    case IntervalType.DistanceUndefinedRest:
+                        workoutDuration = WorkoutDuration.Distance;
+                        interval.SecondsOfRest = 0;
+                        break;
+                    case IntervalType.TimeUndefinedRest:
+                        workoutDuration = WorkoutDuration.Time;
+                        interval.SecondsOfRest = 0;
+                        break;
+                    case IntervalType.WattMinuteUndefinedRest:
+                        workoutDuration = WorkoutDuration.WattMinutes;
+                        interval.SecondsOfRest = 0;
+                        break;
+                }
+            }
 
-                // Fixed, Intervals
-                case WorkoutType.FixedCalorieInterval:
-                    workoutDuration = WorkoutDuration.Calories;
-                    requireRest = true;
-                    break;
-                case WorkoutType.FixedDistanceInterval:
-                    workoutDuration = WorkoutDuration.Distance;
-                    requireRest = true;
-                    break;
-                case WorkoutType.FixedTimeInterval:
-                    workoutDuration = WorkoutDuration.Time;
-                    requireRest = true;
-                    break;
+            if (interval.WorkoutType != null && interval.IntervalType == null) { 
+                switch (interval.WorkoutType)
+                {
+                    // Fixed, No Splits
+                    case WorkoutType.FixedDistanceNoSplits:
+                        workoutDuration = WorkoutDuration.Distance;
+                        break;
+                    case WorkoutType.FixedTimeNoSplits:
+                        workoutDuration = WorkoutDuration.Time;
+                        break;
 
-                // Error case
-                default:
-                    _logger.LogError("Invalid workout type encountered when setting fixed interval workout. No workout has been set.");
-                    break;
+                    // Fixed, Splits
+                    case WorkoutType.FixedCalorieWithSplits:
+                        workoutDuration = WorkoutDuration.Calories;
+                        requireSplits = true;
+                        break;
+                    case WorkoutType.FixedDistanceWithSplits:
+                        workoutDuration = WorkoutDuration.Distance;
+                        requireSplits = true;
+                        break;
+                    case WorkoutType.FixedTimeWithSplits:
+                        workoutDuration = WorkoutDuration.Time;
+                        requireSplits = true;
+                        break;
+                    case WorkoutType.FixedWattMinuteWithSplits:
+                        workoutDuration = WorkoutDuration.WattMinutes;
+                        requireSplits = true;
+                        break;
+
+                    // Fixed, Intervals
+                    case WorkoutType.FixedCalorieInterval:
+                        workoutDuration = WorkoutDuration.Calories;
+                        requireRest = true;
+                        break;
+                    case WorkoutType.FixedDistanceInterval:
+                        workoutDuration = WorkoutDuration.Distance;
+                        requireRest = true;
+                        break;
+                    case WorkoutType.FixedTimeInterval:
+                        workoutDuration = WorkoutDuration.Time;
+                        requireRest = true;
+                        break;
+
+                    // Error case
+                    default:
+                        _logger.LogError("Invalid workout type encountered when setting fixed interval workout. No workout has been set.");
+                        break;
+                }
             }
 
             if (workoutDuration == null)
