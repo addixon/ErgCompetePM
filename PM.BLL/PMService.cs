@@ -82,7 +82,7 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public IEnumerable<Location> Discover()
+        public IEnumerable<string> Discover()
         {
             return _pmCommunicator.Discover();
         }
@@ -100,7 +100,7 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public void StartPolling(Location location)
+        public void StartPolling(string serialNumber)
         {
             _logger.LogInformation("Establishing polling intervals.");
 
@@ -112,38 +112,38 @@ namespace BLL
                 PollInterval.Hz_1 
             };
 
-            _logger.LogInformation("Starting polling on location [{Location}].", location);
-            _pmPollingService.StartPolling(location, pollIntervals);
+            _logger.LogInformation("Starting polling for serial number [{SerialNumber}].", serialNumber);
+            _pmPollingService.StartPolling(serialNumber, pollIntervals);
         }
 
         /// <inheritdoc />
-        public void StopPolling(Location? location = null)
+        public void StopPolling(string? serialNumber = null)
         {
-            if (location.HasValue)
+            if (serialNumber == null)
             {
-                _logger.LogInformation("Stopping polling on location [{Location}].", location);
+                _logger.LogInformation("Stopping polling for serial number [{SerialNumber}].", serialNumber);
             }
             else
             {
                 _logger.LogInformation("Stopping polling on all locations.");
             }
 
-            _pmPollingService.StopPolling(location);
+            _pmPollingService.StopPolling(serialNumber);
         }
 
         #region Workouts
         /// <inheritdoc />
-        public void SetJustRowWorkout(Location location, bool splits)
+        public void SetJustRowWorkout(string serialNumber, bool splits)
         {
             IEnumerable<ICommand> commands = BuildJustRowWorkout(splits);
 
             ICommandList commandList = _commandListFactory.Create(commands);
             commandList.Prepare();
-            _pmCommunicator.Send(location, commandList);
+            _pmCommunicator.Send(serialNumber, commandList);
         }
 
         /// <inheritdoc />
-        public void SetFixedWorkout(Location location, Interval interval)
+        public void SetFixedWorkout(string serialNumber, Interval interval)
         {
             if (interval == null)
             {
@@ -178,11 +178,11 @@ namespace BLL
 
             ICommandList commandList = _commandListFactory.Create(commands);
             commandList.Prepare();
-            _pmCommunicator.Send(location, commandList);
+            _pmCommunicator.Send(serialNumber, commandList);
         }
 
         /// <inheritdoc />
-        public void SetVariableWorkout(Location location, IEnumerable<Interval> intervals)
+        public void SetVariableWorkout(string serialNumber, IEnumerable<Interval> intervals)
         {
             if (intervals == null)
             {
@@ -200,16 +200,16 @@ namespace BLL
 
             ICommandList commandList = _commandListFactory.Create(commands);
             commandList.Prepare();
-            _pmCommunicator.Send(location, commandList);
+            _pmCommunicator.Send(serialNumber, commandList);
         }
 
         /// <inheritdoc />
-        public void TerminateWorkout(Location location)
+        public void TerminateWorkout(string serialNumber)
         {
             ICommandList commandList = _commandListFactory.Create();
             commandList.Add(new SetScreenStateCommand(ScreenType.Workout, ScreenValueWorkout.TerminateWorkout));
             commandList.Prepare();
-            _pmCommunicator.Send(location, commandList);
+            _pmCommunicator.Send(serialNumber, commandList);
         }
         #endregion
 
@@ -567,17 +567,23 @@ namespace BLL
                 throw new Exception($"Unexpected arguments in method [{nameof(OnDeviceLost)}]");
             }
 
+            if (deviceArgs.SerialNumber == null)
+            {
+                _logger.LogCritical("Serial number was null when DeviceLost was acted on.");
+                return;
+            }
+
             try
             {
                 // Close poll if active
-                if (_pmPollingService.IsActive(deviceArgs.Location))
+                if (_pmPollingService.IsActive(deviceArgs.SerialNumber))
                 {
-                    _pmPollingService.StopPolling(deviceArgs.Location);
+                    _pmPollingService.StopPolling(deviceArgs.SerialNumber);
                 }
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "Attempted to stop polling on location [{Location}], but failed.", deviceArgs.Location);
+                _logger.LogWarning(e, "Attempted to stop polling for serial number [{SerialNumber}], but failed.", deviceArgs.SerialNumber);
             }
         }
     }

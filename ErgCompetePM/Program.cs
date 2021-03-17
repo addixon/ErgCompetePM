@@ -8,6 +8,8 @@ using PM.BO.Configuration;
 using PM.BO.EventArguments;
 using PM.BO.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,12 +53,15 @@ namespace ErgCompetePM
         /// </summary>
         private Timer? _hubConnectionTimer;
 
+        private static IList<string> _activeDevices;
+
         /// <summary>
         /// Static constructor
         /// </summary>
         static Program()
         {
             _displayLock = new();
+            _activeDevices = new List<string>();
         }
 
         /// <summary>
@@ -85,6 +90,10 @@ namespace ErgCompetePM
 
             Console.WriteLine("Starting to listen for devices.");
             _pmService.StartAutoDiscovery();
+
+            Thread.Sleep(5000);
+
+            _pmService.SetJustRowWorkout(_activeDevices.First(), false);
 
             // Run forever
             do { } while (true);
@@ -171,9 +180,16 @@ namespace ErgCompetePM
                 throw new Exception("Unexpected event arguments.");
             }
 
+            if (deviceArgs.SerialNumber == null)
+            {
+                _logger.LogCritical("Serial number was null when StartMonitoring was acted on.");
+                return;
+            }
+
             Console.WriteLine("Device found!");
 
-            _pmService.StartPolling(deviceArgs.Location);
+            _activeDevices.Add(deviceArgs.SerialNumber);
+            _pmService.StartPolling(deviceArgs.SerialNumber);
         }
 
         /// <summary>
@@ -187,12 +203,20 @@ namespace ErgCompetePM
                 throw new ArgumentNullException(nameof(args));
             }
 
-            if (args is not DeviceEventArgs _)
+            if (args is not DeviceEventArgs deviceArgs)
             {
                 throw new Exception("Unexpected event arguments.");
             }
 
+            if (deviceArgs?.SerialNumber == null)
+            {
+                _logger.LogCritical("Serial number was null when StartMonitoring was acted on.");
+                return;
+            }
+
             Console.WriteLine("Device lost!");
+
+            _activeDevices.Remove(deviceArgs.SerialNumber);
 
             // Do nothing at this time. Polling has been stopped by PMService
         }
@@ -223,7 +247,7 @@ namespace ErgCompetePM
                 }
 
                 Console.WriteLine("HubConnection: " + _hubConnection?.State);
-                Console.WriteLine("Location: " + pollArgs.Location);
+                Console.WriteLine("Serial Number: " + pollArgs.SerialNumber);
 
                 Console.WriteLine("Stroke State: " + pollArgs.Data.StrokeState);
                 Console.WriteLine("Calories: " + pollArgs.Data.AccumulatedCalories);

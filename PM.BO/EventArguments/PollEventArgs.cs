@@ -8,9 +8,9 @@ namespace PM.BO.EventArguments
     public class PollEventArgs : EventArgs
     {
         /// <summary>
-        /// The location of the device
+        /// The serial number of the device
         /// </summary>
-        public Location? Location { get; set; }
+        public string? SerialNumber { get; set; }
         
         /// <summary>
         /// The data

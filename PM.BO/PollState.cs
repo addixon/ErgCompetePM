@@ -9,11 +9,11 @@ namespace PM.BO
         public DateTime ExecutionStartTime { get; set; }
         public IEnumerable<PollInterval>? PollIntervals { get; set; }
         public ushort Iterations { get; set; }
-        public Location Location { get; }
+        public string SerialNumber { get; }
 
-        public PollState(Location location)
+        public PollState(string serialNumber)
         {
-            Location = location;
+            SerialNumber = serialNumber;
         }
     }
 }

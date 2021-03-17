@@ -35,14 +35,14 @@ namespace BLL
         private const int WorkoutStateCheckInterval = 30;
 
         /// <summary>
-        /// Locations that have active polls
+        /// Serial numbers that have active polls
         /// </summary>
-        private static readonly ConcurrentDictionary<Location, Timer> _activePolls;
+        private static readonly ConcurrentDictionary<string, Timer> _activePolls;
         
         /// <summary>
-        /// PM Data for each location
+        /// PM Data for each serial number
         /// </summary>
-        private static readonly ConcurrentDictionary<Location, PMData> _data;
+        private static readonly ConcurrentDictionary<string, PMData> _data;
         
         /// <summary>
         /// The logger
@@ -120,68 +120,68 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public void StartPolling(Location location, IEnumerable<PollInterval> pollIntervals)
+        public void StartPolling(string serialNumber, IEnumerable<PollInterval> pollIntervals)
         {
             if (pollIntervals == null)
             {
                 Exception e = new ArgumentNullException(nameof(pollIntervals), "Poll Intervals must not be null");
-                _logger.LogCritical(e, "Invalid call to [{MethodName}] for location [{Location}]", nameof(StartPolling), location);
+                _logger.LogCritical(e, "Invalid call to [{MethodName}] for serial number [{SerialNumber}]", nameof(StartPolling), serialNumber);
                 throw e;
             }
 
             if (!pollIntervals.Any())
             {
-                _logger.LogWarning("A call was made to start logging for location [{Location}], but no intervals were defined.", location);
+                _logger.LogWarning("A call was made to start logging for serial number [{SerialNumber}], but no intervals were defined.", serialNumber);
                 return;
             }
 
-            if (_activePolls.ContainsKey(location))
+            if (_activePolls.ContainsKey(serialNumber))
             {
-                _logger.LogWarning("A poll was attempted to be started for location [{Location}], but was already started. Poll must first be stopped. Ignoring duplicate poll.", location);
+                _logger.LogWarning("A poll was attempted to be started for serial number [{SerialNumber}], but was already started. Poll must first be stopped. Ignoring duplicate poll.", serialNumber);
                 return;
             }
 
             CancellationTokenSource cancellationTokenSource = new();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-            Timer timer = CreatePollTimer(location, pollIntervals);
+            Timer timer = CreatePollTimer(serialNumber, pollIntervals);
 
-            _activePolls.TryAdd(location, timer);
+            _activePolls.TryAdd(serialNumber, timer);
         }
 
         /// <inheritdoc />
-        public void StopPolling(Location? location = null)
+        public void StopPolling(string? serialNumber = null)
         {
-            if (!location.HasValue)
+            if (serialNumber == null)
             {
                 // stop all polling
-                foreach (Location pollLocation in _activePolls.Keys)
+                foreach (string activeSerialNumber in _activePolls.Keys)
                 {
                     // stop polling on single active location
-                    StopPolling(pollLocation);
+                    StopPolling(activeSerialNumber);
                 }
 
                 return;
             }
 
-            if (!_activePolls.ContainsKey(location.Value))
+            if (!_activePolls.ContainsKey(serialNumber))
             {
-                _logger.LogWarning("A poll was attempted to be stopped, but was not running for location [{Location}].", location);
+                _logger.LogWarning("A poll was attempted to be stopped, but was not running for serial number [{SerialNumber}].", serialNumber);
                 return;
             }
 
             // Remove the task
-            bool removeResult = _activePolls.Remove(location.Value, out Timer? timer);
+            bool removeResult = _activePolls.Remove(serialNumber, out Timer? timer);
 
             if (!removeResult)
             {
-                _logger.LogWarning("A poll was attempted to be stopped for location [{Location}], but was not found.", location);
+                _logger.LogWarning("A poll was attempted to be stopped for serial number [{SerialNumber}], but was not found.", serialNumber);
                 return;
             }
 
             if (timer == null)
             {
-                _logger.LogWarning("A poll was found for location [{Location}], but its timer was null.", location);
+                _logger.LogWarning("A poll was found for serial number [{SerialNumber}], but its timer was null.", serialNumber);
                 return;
             }
 
@@ -190,21 +190,21 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public bool IsActive(Location location)
+        public bool IsActive(string serialNumber)
         {
-            return _activePolls.ContainsKey(location);
+            return _activePolls.ContainsKey(serialNumber);
         }
 
         /// <summary>
         /// Creates a poll timer for the specified location
         /// </summary>
-        /// <param name="location">The location</param>
+        /// <param name="serialNumber">The serialNumber</param>
         /// <param name="pollIntervals">The intervals to poll for</param>
         /// <returns>The created timer</returns>
-        private Timer CreatePollTimer(Location location, IEnumerable<PollInterval> pollIntervals)
+        private Timer CreatePollTimer(string serialNumber, IEnumerable<PollInterval> pollIntervals)
         {
             const ushort MillisecondsBetweenTrigger = 10;
-            PollState state = new(location)
+            PollState state = new(serialNumber)
             {
                 ExecutionStartTime = DateTime.UtcNow,
                 PollIntervals = pollIntervals
@@ -219,10 +219,9 @@ namespace BLL
         /// <param name="args">The update arguments</param>
         private void UpdateWorkoutState(CacheEntryUpdateArguments args)
         {
-            string[] locationString = args.Key.Split('.');
+            string serialNumber = args.Key;
 
-            Location location = new (int.Parse(locationString[0]), int.Parse(locationString[1]));
-            if (!_activePolls.ContainsKey(location))
+            if (!_activePolls.ContainsKey(serialNumber))
             {
                 // This device is no longer connected, so do not refresh the state
                 return;
@@ -233,15 +232,15 @@ namespace BLL
                 return;
             }
 
-            args.UpdatedCacheItem.Value = GetWorkoutState(location);
+            args.UpdatedCacheItem.Value = GetWorkoutState(serialNumber);
         }
 
         /// <summary>
         /// Gets the current workout state for a specified location
         /// </summary>
-        /// <param name="location">The location</param>
+        /// <param name="serialNumber">The serial number</param>
         /// <returns>The current workout state</returns>
-        private WorkoutState? GetWorkoutState(Location location)
+        private WorkoutState? GetWorkoutState(string serialNumber)
         {
             ICommandList commands = _commandListFactory.Create();
             commands.Add(new GetWorkoutStateCommand());
@@ -249,7 +248,7 @@ namespace BLL
 
             try
             {
-                _pmCommunicator.Send(location, commands);
+                _pmCommunicator.Send(serialNumber, commands);
             }
             catch (Exception e)
             {
@@ -280,7 +279,7 @@ namespace BLL
 
             ICommandList commands = _commandListFactory.Create();
 
-            string cacheKey = $"{pollState.Location.BusNumber}.{pollState.Location.Address}";
+            string cacheKey = pollState.SerialNumber;
             ObjectCache workoutStateCache = MemoryCache.Default;
             WorkoutState? workoutState;
 
@@ -300,7 +299,7 @@ namespace BLL
                     bool retryWorkoutState = false;
                     do
                     {
-                        workoutState = GetWorkoutState(pollState.Location);
+                        workoutState = GetWorkoutState(pollState.SerialNumber);
 
                         if (workoutState == null)
                         {
@@ -334,7 +333,8 @@ namespace BLL
             int workoutStateValue = (int) workoutState;
             if (workoutStateValue < 1 || workoutStateValue > 9)
             {
-                return;
+                // TODO: Uncomment this
+                // return;
             }
 
             // Collect the intervals to execute for this iteration
@@ -343,10 +343,10 @@ namespace BLL
             if (pollIntervals.Any()) 
             { 
                 // Execute poll
-                ICommandList? result = ExecutePoll(pollState.Location, pollIntervals);
+                ICommandList? result = ExecutePoll(pollState.SerialNumber, pollIntervals);
 
                 // Update data
-                UpdateData(pollState.Location, result);
+                UpdateData(pollState.SerialNumber, result);
             
                 // Check if 1 second has been reached
                 if (pollState.Iterations > 100)
@@ -354,8 +354,8 @@ namespace BLL
                     // Fire event with the poll data
                     EventArgs args = new PollEventArgs
                     {
-                        Data = _data[pollState.Location],
-                        Location = pollState.Location
+                        Data = _data[pollState.SerialNumber],
+                        SerialNumber = pollState.SerialNumber
                     };
 
                     PollReturned?.Invoke(this, args);
@@ -369,18 +369,18 @@ namespace BLL
         /// <summary>
         /// Updates data in the PM with the results from the poll
         /// </summary>
-        /// <param name="location">The location</param>
+        /// <param name="serialNumber">The serial number</param>
         /// <param name="results">The poll results</param>
-        private static void UpdateData(Location location, ICommandList? results)
+        private static void UpdateData(string serialNumber, ICommandList? results)
         {
-            if (!_data.ContainsKey(location))
+            if (!_data.ContainsKey(serialNumber))
             {
-                _data.TryAdd(location, new PMData());
+                _data.TryAdd(serialNumber, new PMData());
             }
 
             foreach(ICommand command in results ?? Enumerable.Empty<ICommand>())
             {
-                command.UpdatePMData(_data[location]);
+                command.UpdatePMData(_data[serialNumber]);
             }
         }
 
@@ -419,10 +419,10 @@ namespace BLL
         /// <summary>
         /// Actually polls the device
         /// </summary>
-        /// <param name="location">The location</param>
+        /// <param name="serialNumber">The serial number</param>
         /// <param name="pollIntervals">The intervals to poll for</param>
         /// <returns>The populated commands</returns>
-        private ICommandList? ExecutePoll(Location location, IEnumerable<PollInterval> pollIntervals)
+        private ICommandList? ExecutePoll(string serialNumber, IEnumerable<PollInterval> pollIntervals)
         {
             ICommandList commands = _commandListFactory.Create();
 
@@ -435,12 +435,12 @@ namespace BLL
 
             try
             {
-                _pmCommunicator.Send(location, commands);   
+                _pmCommunicator.Send(serialNumber, commands);   
                 return commands;
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Exception occurred while sending poll commands to location [{Location}]", location);
+                _logger.LogError(e, "Exception occurred while sending poll commands to serial number [{SerialNumber}]", serialNumber);
             }
 
             return null;

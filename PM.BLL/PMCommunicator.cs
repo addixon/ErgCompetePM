@@ -51,7 +51,7 @@ namespace BLL
         /// <summary>
         /// Active devices
         /// </summary>
-        private readonly ConcurrentDictionary<Location, IUsbDevice> _devices;
+        private readonly DeviceConcurrentDictionary _devices;
         
         /// <summary>
         /// The usb context
@@ -88,7 +88,7 @@ namespace BLL
         {
             _logger = logger;
             _context = new UsbContext();
-            _devices = new ConcurrentDictionary<Location, IUsbDevice>();
+            _devices = new ();
             _discoveryTimer = new Timer(InitiateDiscovery, null, Timeout.Infinite, Timeout.Infinite);
         }
 
@@ -105,7 +105,7 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public IEnumerable<Location> Discover()
+        public IEnumerable<string> Discover()
         {
             lock (_discoveryLock)
             {
@@ -114,7 +114,7 @@ namespace BLL
                 // Filter out all but Concept2 Vendor
                 var discoveredDevices = usbDeviceCollection.Where(d => d.VendorId == VendorId);
 
-                // Discover disconnected devices
+                // Discover disconnected device based on location
                 foreach (UsbDevice detachedDevice in _devices.Values.Except(discoveredDevices, new IUsbDeviceComparer()))
                 {
                     Location location = new (detachedDevice.BusNumber, detachedDevice.Address);
@@ -131,7 +131,7 @@ namespace BLL
                     _devices.Remove(location, out _);
                 }
 
-                // Discover new devices
+                // Discover new devices using Location as the comparer
                 foreach (UsbDevice foundDevice in discoveredDevices.Except(_devices.Values, new IUsbDeviceComparer()))
                 {
                     if (!IsValidDevice(foundDevice))
@@ -141,29 +141,40 @@ namespace BLL
 
                     Location location = new (foundDevice.BusNumber, foundDevice.Address);
 
-                    foundDevice.Open();
-                    foundDevice.DetachFromKernel(foundDevice.Configs[0].Interfaces[0].Number);
-                    foundDevice.SetConfiguration(foundDevice.Configs[0].ConfigurationValue);
-                    foundDevice.ClaimInterface(foundDevice.Configs[0].Interfaces[0].Number);
+                    if (!foundDevice.IsOpen) 
+                    {
+                        Initialize(foundDevice);
+                    }
+
+                    string serialNumber = foundDevice.Info.SerialNumber;
 
                     // If events are enabled, fire one for the device being found
                     EventArgs args = new DeviceEventArgs(location)
                     {
-                        SerialNumber = foundDevice.Info.SerialNumber
+                        SerialNumber = serialNumber
                     };
 
                     DeviceFound?.Invoke(this, args);
 
                     // Add to devices
-                    _devices.TryAdd(location, foundDevice);
+                    _devices.TryAdd(location, serialNumber, foundDevice);
                 }
 
-                return _devices.Values.Select(pm => new Location(((UsbDevice)pm).BusNumber, ((UsbDevice)pm).Address));
+                return _devices.SerialNumbers;
             }
         }
 
+        private static void Initialize(UsbDevice device)
+        {
+            device.Open();
+            device.DetachFromKernel(device.Configs[0].Interfaces[0].Number);
+            device.SetConfiguration(device.Configs[0].ConfigurationValue);
+            device.ClaimInterface(device.Configs[0].Interfaces[0].Number);
+
+        }
+
         /// <inheritdoc />
-        public void Send(Location location, ICommandList commands)
+        public void Send(string serialNumber, ICommandList commands)
         {
             if (!commands.CanSend)
             {
@@ -172,15 +183,22 @@ namespace BLL
                 throw e;
             }
 
-            lock (_deviceLocker[location]) 
+            Location? location = _devices.GetLocation(serialNumber);
+
+            if (location == null)
+            {
+                throw new InvalidOperationException("Location was null when sending to serial number.");
+            }    
+
+            lock (_deviceLocker[location.Value]) 
             {
                 const int delayInMilliseconds = 10;
 
                 double? millisecondsSinceLastSend = null;
 
-                if (_lastSends.ContainsKey(location))
+                if (_lastSends.ContainsKey(location.Value))
                 {
-                    millisecondsSinceLastSend = (DateTime.UtcNow - _lastSends[location]).TotalMilliseconds;
+                    millisecondsSinceLastSend = (DateTime.UtcNow - _lastSends[location.Value]).TotalMilliseconds;
                 }
 
                 if (millisecondsSinceLastSend != null && millisecondsSinceLastSend < delayInMilliseconds)
@@ -188,10 +206,16 @@ namespace BLL
                     Thread.Sleep(delayInMilliseconds - (int) millisecondsSinceLastSend);
                 }
 
-                IUsbDevice device = _devices[location];
+                _ = _devices.TryGetValue(location.Value, out IUsbDevice? device);
+
+                if (device == null)
+                {
+                    _logger.LogCritical("Device was null when getting it using location.");
+                    return;
+                }
 
                 // Generate the write buffer and write to PM
-                // TODO: Find a way to allow the CommandList to be passed
+                // TODO: Find a way to allow the CommandList to be passed directly
                 byte[] writeBuffer = commands.Buffer.Select(b => (byte)b).ToArray();
 
                 bool shouldRetry = false;
@@ -220,7 +244,7 @@ namespace BLL
                     }
                     finally
                     {
-                        _lastSends[location] = DateTime.UtcNow;
+                        _lastSends[location.Value] = DateTime.UtcNow;
                     }
                 } while (shouldRetry);
 
@@ -286,10 +310,7 @@ namespace BLL
                 device.Close();
             }
 
-            device.Open();
-            ((UsbDevice)device).DetachFromKernel(device.Configs[0].Interfaces[0].Number);
-            device.SetConfiguration(device.Configs[0].ConfigurationValue);
-            device.ClaimInterface(device.Configs[0].Interfaces[0].Number);
+            Initialize((UsbDevice)device);
         }
 
         /// <summary>

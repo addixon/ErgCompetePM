@@ -12,25 +12,25 @@ namespace PM.BO.Interfaces
         /// <summary>
         /// Starts default polling on the specified location
         /// </summary>
-        /// <param name="location">The location to begin polling</param>
+        /// <param name="serialNumber">The serial number on which to begin polling</param>
         /// <remarks>
         /// Poll data is returned on time from the EventHandler PollReturned. 
         /// Polling only occurs when the WorkoutState is in that of an active workout
         /// </remarks>
-        void StartPolling(Location location, IEnumerable<PollInterval> pollIntervals);
+        void StartPolling(string serialNumber, IEnumerable<PollInterval> pollIntervals);
 
         /// <summary>
         /// Stops polling on the specified location, or on all locations if null
         /// </summary>
-        /// <param name="location">(Optional) The location to stop polling. If null, polling is stopped on all active polling location</param>
-        void StopPolling(Location? location = null);
+        /// <param name="serialNumber">(Optional) The serial number of the device on which to stop polling. If null, polling is stopped on all active devices</param>
+        void StopPolling(string? serialNumber = null);
 
         /// <summary>
         /// Checks if a device at a specified location has an active poll
         /// </summary>
-        /// <param name="location">The location of the device</param>
+        /// <param name="serialNumber">The serial number of the device</param>
         /// <returns>True if there is an active poll, false otherwise</returns>
-        bool IsActive(Location location);
+        bool IsActive(string serialNumber);
 
         /// <summary>
         /// Fires events each time a poll is executed on a device, containing current device data

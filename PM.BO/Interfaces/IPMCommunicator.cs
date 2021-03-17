@@ -25,11 +25,11 @@ namespace PM.BO.Interfaces
         /// <summary>
         /// Discovers all connected Concept2 devices
         /// </summary>
-        /// <returns>An IEnumerable of the locations where devices were discovered</returns>
+        /// <returns>An IEnumerable of the serial numbers of the devices that were discovered</returns>
         /// <remarks>
         /// Device data will be returned per device, from the EventHandler DeviceFound. If executed more than once, the potential for lost device events exist from the EventHandler DeviceLost.
         /// </remarks>
-        IEnumerable<Location> Discover();
+        IEnumerable<string> Discover();
 
         /// <summary>
         /// Sends commands to the PM
@@ -37,9 +37,9 @@ namespace PM.BO.Interfaces
         /// <remarks>
         /// Any data retrieved from the PM is available on the command via Value
         /// </remarks>
-        /// <param name="location">The location of the PM</param>
+        /// <param name="serialNumber">The serial number of the PM</param>
         /// <param name="commandList">The commands</param>
-        void Send(Location location, ICommandList commandList);
+        void Send(string serialNumber, ICommandList commandList);
 
         /// <summary>
         /// Fires events each time a new device has been found.

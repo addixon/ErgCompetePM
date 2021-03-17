@@ -1,5 +1,4 @@
-﻿using PM.BO.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace PM.BO.Interfaces
@@ -12,26 +11,26 @@ namespace PM.BO.Interfaces
         /// <summary>
         /// Starts default polling on the specified location
         /// </summary>
-        /// <param name="location">The location to begin polling</param>
+        /// <param name="serialNumber">The serial number on which to begin polling</param>
         /// <remarks>
         /// Poll data is returned on time from the EventHandler PollReturned
         /// </remarks>
-        void StartPolling(Location location);
-        
+        void StartPolling(string serialNumber);
+
         /// <summary>
         /// Stops polling on the specified location, or on all locations if null
         /// </summary>
-        /// <param name="location">(Optional) The location to stop polling. If null, polling is stopped on all active polling location</param>
-        void StopPolling(Location? location = null);
+        /// <param name="serialNumber">(Optional) The serial number on which to stop polling. If null, polling is stopped on all active polling locations</param>
+        void StopPolling(string? serialNumber = null);
         
         /// <summary>
         /// Discovers all connected Concept2 devices
         /// </summary>
-        /// <returns>An IEnumerable of the locations where devices were discovered</returns>
+        /// <returns>An IEnumerable of the serial numbers for the devices discovered</returns>
         /// <remarks>
         /// Device data will be returned per device, from the EventHandler DeviceFound. If executed more than once, the potential for lost device events exist from the EventHandler DeviceLost.
         /// </remarks>
-        IEnumerable<Location> Discover();
+        IEnumerable<string> Discover();
 
         /// <summary>
         /// Starts device auto discovery, adding and removing devices to the known pool
@@ -50,9 +49,9 @@ namespace PM.BO.Interfaces
         /// <summary>
         /// Sets a Just Row workout
         /// </summary>
-        /// <param name="location">Location of the device</param>
+        /// <param name="serialNumber">Serial number of the device</param>
         /// <param name="splits">Just row with splits if true, with no splits if false</param>
-        void SetJustRowWorkout(Location location, bool splits);
+        void SetJustRowWorkout(string serialNumber, bool splits);
 
         /// <summary>
         /// Sets a fixed workout
@@ -60,22 +59,22 @@ namespace PM.BO.Interfaces
         /// <remarks>
         /// The values for duration and splits must match the type of the desired workout
         /// </remarks>
-        /// <param name="location">Location of the device</param>
+        /// <param name="serialNumber">Serial number of the device</param>
         /// <param name="interval">Workout interval</param>
-        void SetFixedWorkout(Location location, Interval interval);
+        void SetFixedWorkout(string serialNumber, Interval interval);
 
         /// <summary>
         /// Sets a variable workout
         /// </summary>
-        /// <param name="location">Location of the device</param>
+        /// <param name="serialNumber">Serial number of the device</param>
         /// <param name="intervals">Intervals</param>
-        void SetVariableWorkout(Location location, IEnumerable<Interval> intervals);
+        void SetVariableWorkout(string serialNumber, IEnumerable<Interval> intervals);
 
         /// <summary>
         /// Terminate a workout
         /// </summary>
-        /// <param name="location">Location of the device</param>
-        void TerminateWorkout(Location location);
+        /// <param name="serialNumber">Serial number of the device</param>
+        void TerminateWorkout(string serialNumber);
 
         /// <summary>
         /// Fires events each time a new device has been found.
