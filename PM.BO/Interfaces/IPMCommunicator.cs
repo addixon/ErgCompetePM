@@ -29,7 +29,7 @@ namespace PM.BO.Interfaces
         /// <remarks>
         /// Device data will be returned per device, from the EventHandler DeviceFound. If executed more than once, the potential for lost device events exist from the EventHandler DeviceLost.
         /// </remarks>
-        IEnumerable<(int BusNumber, int Address)> Discover();
+        IEnumerable<Location> Discover();
 
         /// <summary>
         /// Sends commands to the PM
@@ -39,7 +39,7 @@ namespace PM.BO.Interfaces
         /// </remarks>
         /// <param name="location">The location of the PM</param>
         /// <param name="commandList">The commands</param>
-        void Send((int BusNumber, int Address) location, ICommandList commandList);
+        void Send(Location location, ICommandList commandList);
 
         /// <summary>
         /// Fires events each time a new device has been found.

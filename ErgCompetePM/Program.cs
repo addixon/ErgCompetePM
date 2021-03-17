@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+﻿using BLL.Hubs;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -145,12 +146,12 @@ namespace ErgCompetePM
 
             _ = Task.Run(async () =>
               {
-                  PerformanceMonitor pm = new()
+                  PM.BO.PM pm = new()
                   {
                       Data = pollArgs.Data ?? new PMData()
                   };
 
-                  await _hubConnection.InvokeAsync("UpdateErg", pm).ConfigureAwait(false);
+                  await _hubConnection.InvokeAsync(nameof(ErgHub.SendStatisticsToHub), pm).ConfigureAwait(false);
               });
         }
 

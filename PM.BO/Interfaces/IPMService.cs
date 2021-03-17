@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PM.BO.Enums;
+using System;
 using System.Collections.Generic;
 
 namespace PM.BO.Interfaces
@@ -15,13 +16,13 @@ namespace PM.BO.Interfaces
         /// <remarks>
         /// Poll data is returned on time from the EventHandler PollReturned
         /// </remarks>
-        void StartPolling((int BusNumber, int Address) location);
+        void StartPolling(Location location);
         
         /// <summary>
         /// Stops polling on the specified location, or on all locations if null
         /// </summary>
         /// <param name="location">(Optional) The location to stop polling. If null, polling is stopped on all active polling location</param>
-        void StopPolling((int BusNumber, int Address)? location = null);
+        void StopPolling(Location? location = null);
         
         /// <summary>
         /// Discovers all connected Concept2 devices
@@ -30,7 +31,7 @@ namespace PM.BO.Interfaces
         /// <remarks>
         /// Device data will be returned per device, from the EventHandler DeviceFound. If executed more than once, the potential for lost device events exist from the EventHandler DeviceLost.
         /// </remarks>
-        IEnumerable<(int BusNumber, int Address)> Discover();
+        IEnumerable<Location> Discover();
 
         /// <summary>
         /// Starts device auto discovery, adding and removing devices to the known pool
@@ -45,7 +46,31 @@ namespace PM.BO.Interfaces
         /// Stops device auto discovery
         /// </summary>
         void StopAutoDiscovery();
-        
+
+        /// <summary>
+        /// Sets a Just Row workout
+        /// </summary>
+        /// <param name="location">Location of the device</param>
+        /// <param name="splits">Just row with splits if true, with no splits if false</param>
+        void SetJustRowWorkout(Location location, bool splits);
+
+        /// <summary>
+        /// Sets a fixed workout
+        /// </summary>
+        /// <remarks>
+        /// The values for duration and splits must match the type of the desired workout
+        /// </remarks>
+        /// <param name="location">Location of the device</param>
+        /// <param name="interval">Workout interval</param>
+        void SetFixedWorkout(Location location, Interval interval);
+
+        /// <summary>
+        /// Sets a variable workout
+        /// </summary>
+        /// <param name="location">Location of the device</param>
+        /// <param name="intervals">Intervals</param>
+        void SetVariableWorkout(Location location, IEnumerable<Interval> intervals);
+
         /// <summary>
         /// Fires events each time a new device has been found.
         /// </summary>

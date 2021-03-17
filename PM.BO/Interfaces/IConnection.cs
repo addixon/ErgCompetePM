@@ -11,7 +11,7 @@ namespace PM.BO.Interfaces
         /// <summary>
         /// The Performance Monitor
         /// </summary>
-        PerformanceMonitor? PerformanceMonitor { get; }
+        PM? PerformanceMonitor { get; }
 
         /// <summary>
         /// The current state of the connection with the Performance Monitor

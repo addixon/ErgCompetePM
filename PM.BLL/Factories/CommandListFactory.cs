@@ -1,6 +1,7 @@
 ﻿using BLL.Communication;
 using Microsoft.Extensions.Logging;
 using PM.BO.Interfaces;
+using System.Collections.Generic;
 
 namespace PM.BLL.Factories
 {
@@ -33,6 +34,14 @@ namespace PM.BLL.Factories
         public ICommandList Create()
         {
             return new CommandList(_commandListLogger);
+        }
+
+        /// <inheritdoc />
+        public ICommandList Create(IEnumerable<ICommand> commands)
+        {
+            ICommandList commandList = new CommandList(_commandListLogger);
+            commandList.AddRange(commands);
+            return commandList;
         }
     }
 }

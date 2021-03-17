@@ -5,6 +5,6 @@ namespace PM.BO.Interfaces
 {
     public interface IErgClient
     {
-        Task UpdateDisplay(PerformanceMonitor performanceMonitor);
+        Task ErgToHub(IErg performanceMonitor);
     }
 }

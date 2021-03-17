@@ -50,7 +50,7 @@ namespace PM.BO
 
         public bool IsLongCommand => CommandType == PMCommandType.Long;
 
-        public dynamic Value => throw new InvalidOperationException("Set commands do not have a value.");
+        public dynamic? Value { get; set; }
 
         public SetCommand()
         {
@@ -75,7 +75,12 @@ namespace PM.BO
 
         public void Read(IResponseReader responseReader)
         {
-            throw new NotSupportedException("Read is not supported on Set commands");
+            ReadImplementation(responseReader, 0);
+        }
+
+        protected virtual void ReadImplementation(IResponseReader responseReader, ushort _)
+        {
+            throw new NotSupportedException("Read is not guaranteed to be supported on Set commands");
         }
     }
 }

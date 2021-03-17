@@ -10,7 +10,7 @@ namespace PM.BO.EventArguments
         /// <summary>
         /// The location of the device
         /// </summary>
-        public (int BusNumber, int Address) Location { get; set; }
+        public Location Location { get; set; }
         
         /// <summary>
         /// The serial number
@@ -21,7 +21,7 @@ namespace PM.BO.EventArguments
         /// Constructor
         /// </summary>
         /// <param name="location">The location of the device</param>
-        public DeviceEventArgs((int BusNumber, int Address) location)
+        public DeviceEventArgs(Location location)
         {
             Location = location;
         }

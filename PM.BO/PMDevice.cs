@@ -23,7 +23,7 @@ namespace PM.BO
 
         public string SerialNumber => _device.Info.SerialNumber;
 
-        public (int BusNumber, int Address) Location { get; }
+        public Location Location { get; }
 
         public PMDevice(IUsbDevice device)
         {
@@ -37,7 +37,7 @@ namespace PM.BO
                 throw new InvalidOperationException("Device must be a UsbDevice to be a PMDevice.");
             }
 
-            Location = (usbDevice.BusNumber, usbDevice.Address);
+            Location = new (usbDevice.BusNumber, usbDevice.Address);
         }
 
         public void RefreshDevice(IUsbDevice device)

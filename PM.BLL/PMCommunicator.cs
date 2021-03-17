@@ -3,6 +3,7 @@ using BLL.Helpers;
 using LibUsbDotNet;
 using LibUsbDotNet.LibUsb;
 using Microsoft.Extensions.Logging;
+using PM.BO;
 using PM.BO.Comparers;
 using PM.BO.EventArguments;
 using PM.BO.Interfaces;
@@ -45,12 +46,12 @@ namespace BLL
         /// <summary>
         /// Catalog of last sends to the device to ensure the device is not overwhelmed
         /// </summary>
-        private static readonly ConcurrentDictionary<(int BusNumber, int Address), DateTime> _lastSends;
+        private static readonly ConcurrentDictionary<Location, DateTime> _lastSends;
         
         /// <summary>
         /// Active devices
         /// </summary>
-        private readonly ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice> _devices;
+        private readonly ConcurrentDictionary<Location, IUsbDevice> _devices;
         
         /// <summary>
         /// The usb context
@@ -75,7 +76,7 @@ namespace BLL
         {
             _deviceLocker = new();
             _discoveryLock = new();
-            _lastSends = new ConcurrentDictionary<(int BusNumber, int Address), DateTime>();
+            _lastSends = new ConcurrentDictionary<Location, DateTime>();
         }
 
         /// <summary>
@@ -87,7 +88,7 @@ namespace BLL
         {
             _logger = logger;
             _context = new UsbContext();
-            _devices = new ConcurrentDictionary<(int BusNumber, int Address), IUsbDevice>();
+            _devices = new ConcurrentDictionary<Location, IUsbDevice>();
             _discoveryTimer = new Timer(InitiateDiscovery, null, Timeout.Infinite, Timeout.Infinite);
         }
 
@@ -104,7 +105,7 @@ namespace BLL
         }
 
         /// <inheritdoc />
-        public IEnumerable<(int BusNumber, int Address)> Discover()
+        public IEnumerable<Location> Discover()
         {
             lock (_discoveryLock)
             {
@@ -116,7 +117,7 @@ namespace BLL
                 // Discover disconnected devices
                 foreach (UsbDevice detachedDevice in _devices.Values.Except(discoveredDevices, new IUsbDeviceComparer()))
                 {
-                    (int BusNumber, int Address) location = (detachedDevice.BusNumber, detachedDevice.Address);
+                    Location location = new (detachedDevice.BusNumber, detachedDevice.Address);
 
                     // If events are enabled, fire one for the device being lost
                     EventArgs args = new DeviceEventArgs(location);
@@ -138,7 +139,7 @@ namespace BLL
                         _logger.LogWarning("Invalid device encountered. Not being added to the device list.");
                     }
 
-                    (int BusNumber, int Address) location = (foundDevice.BusNumber, foundDevice.Address);
+                    Location location = new (foundDevice.BusNumber, foundDevice.Address);
 
                     foundDevice.Open();
                     foundDevice.DetachFromKernel(foundDevice.Configs[0].Interfaces[0].Number);
@@ -157,12 +158,12 @@ namespace BLL
                     _devices.TryAdd(location, foundDevice);
                 }
 
-                return _devices.Values.Select(pm => ((int)((UsbDevice)pm).BusNumber, (int)((UsbDevice)pm).Address));
+                return _devices.Values.Select(pm => new Location(((UsbDevice)pm).BusNumber, ((UsbDevice)pm).Address));
             }
         }
 
         /// <inheritdoc />
-        public void Send((int BusNumber, int Address) location, ICommandList commands)
+        public void Send(Location location, ICommandList commands)
         {
             if (!commands.CanSend)
             {

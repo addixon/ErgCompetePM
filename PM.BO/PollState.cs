@@ -9,9 +9,9 @@ namespace PM.BO
         public DateTime ExecutionStartTime { get; set; }
         public IEnumerable<PollInterval>? PollIntervals { get; set; }
         public ushort Iterations { get; set; }
-        public (int BusNumber, int Address) Location { get; }
+        public Location Location { get; }
 
-        public PollState((int BusNumber, int Address) location)
+        public PollState(Location location)
         {
             Location = location;
         }

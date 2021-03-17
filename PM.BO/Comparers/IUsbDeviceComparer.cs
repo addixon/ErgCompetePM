@@ -32,7 +32,7 @@ namespace PM.BO.Comparers
         {
             UsbDevice usbDevice = (UsbDevice)device;
 
-            (int BusNumber, int Address) location = (usbDevice.BusNumber, usbDevice.Address);
+            Location location = new (usbDevice.BusNumber, usbDevice.Address);
             return location.GetHashCode();
         }
     }

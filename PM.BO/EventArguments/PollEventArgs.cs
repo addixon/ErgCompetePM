@@ -10,7 +10,7 @@ namespace PM.BO.EventArguments
         /// <summary>
         /// The location of the device
         /// </summary>
-        public (int BusNumber, int Address)? Location { get; set; }
+        public Location? Location { get; set; }
         
         /// <summary>
         /// The data

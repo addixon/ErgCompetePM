@@ -1,7 +1,6 @@
-﻿using PM.BO;
-using PM.BO.EventArguments;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using PM.BO.Interfaces;
-using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
 
@@ -13,18 +12,33 @@ namespace BLL.Hubs
     public class ErgHub : Hub<IErgClient>
     {
         /// <summary>
-        /// Called from the server to update display based on single erg data
+        /// The logger
         /// </summary>
-        /// <param name="performanceMonitorJson">The performance monitor</param>
-        public async Task UpdateErg(PollEventArgs pollEventArgs)
-        {
-            PerformanceMonitor pm = new PerformanceMonitor
-            {
-                Data = pollEventArgs?.Data
-            };
+        private readonly ILogger<ErgHub> _logger;
 
-            // Refresh the screen
-            await Clients.All.UpdateDisplay(pm).ConfigureAwait(false);
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="logger">The logger</param>
+        public ErgHub(ILogger<ErgHub> logger)
+        {
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Called to initiate an send to the hub
+        /// </summary>
+        /// <param name="performanceMonitor">The performance monitor</param>
+        public async Task SendStatisticsToHub(IErg performanceMonitor)
+        {
+            if (performanceMonitor == null)
+            {
+                _logger.LogWarning("When requested to send statistics to hub, the performance monitor was null. Returning without sending.");
+                return;
+            }
+
+            // Send the data
+            await Clients.All.ErgToHub(performanceMonitor).ConfigureAwait(false);
 
             return;
         }

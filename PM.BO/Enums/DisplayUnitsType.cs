@@ -5,6 +5,7 @@
         TimeMeters = 0,
         Pace = 1,
         Watts = 2,
-        Calories = 3
+        CaloricBurnRate = 3,
+        Calories = 4
     }
 }

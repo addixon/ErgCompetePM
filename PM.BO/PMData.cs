@@ -1,9 +1,10 @@
 ﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 using System;
 
 namespace PM.BO
 {
-    public class PMData
+    public class PMData : IErgData
     {
         public ushort? AccumulatedCalories { get; set; }
         public ushort? Cadence { get; set; }
