@@ -226,7 +226,8 @@ namespace BLL
                     UsbEndpointWriter writer = device.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
                     try
                     {
-                        writeResult = writer.Write(writeBuffer, 100, out int writeBufferSize);
+                        int writeBufferSize = 12;
+                        writeResult = writer.Write(writeBuffer, 100, out writeBufferSize);
 
                         if (writeResult == Error.Io)
                         {

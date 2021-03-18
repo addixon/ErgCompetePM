@@ -11,8 +11,7 @@ namespace PM.BO.Commands
     public class SetWorkoutDurationCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_WORKOUTDURATION;
-        public override ushort Size => 5;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetWorkoutDurationCommand(uint[] data) : base(data)
         {
@@ -27,7 +26,7 @@ namespace PM.BO.Commands
             }
 
             List<uint> data = new() { (uint)workoutDuration };
-            data.AddRange(BitConverter.GetBytes(duration).Select(b => (uint)b));
+            data.AddRange(BitConverter.GetBytes(duration).Reverse().Select(b => (uint)b));
 
             Data = data;
         }

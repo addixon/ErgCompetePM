@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace PM.BO
 {
-    public abstract class SetCommand : ICommand
+    public abstract class SetCommand : Command, ICommand
     {
         public string Name
         {
@@ -28,17 +28,9 @@ namespace PM.BO
             }
         }
 
-        public abstract byte Code { get; }
+        public override ushort? ResponseSize => 0;
 
-        public abstract PMCommandType CommandType { get; }
-
-        public ushort? ResponseSize => 0;
-
-        public abstract ushort Size { get; }
-
-        public abstract bool IsProprietary { get; }
-
-        protected IEnumerable<uint>? Data { get; set; }
+        public virtual uint? ProprietaryWrapper => null;
 
         public string? Units { get; }
 
@@ -60,27 +52,6 @@ namespace PM.BO
         public SetCommand(uint[]? data = null)
         {
             Data = data ?? Enumerable.Empty<uint>();
-        }
-
-        public void Write(ICommandWriter commandWriter)
-        {
-            commandWriter.WriteByte(Code);
-
-            if (Data != null && Data.Any()) 
-            {
-                commandWriter.WriteByte((uint) Data.Count());
-                commandWriter.WriteBytes(Data);
-            }
-        }
-
-        public void Read(IResponseReader responseReader)
-        {
-            ReadImplementation(responseReader, 0);
-        }
-
-        protected virtual void ReadImplementation(IResponseReader responseReader, ushort _)
-        {
-            throw new NotSupportedException("Read is not guaranteed to be supported on Set commands");
         }
     }
 }

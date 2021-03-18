@@ -8,7 +8,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_VERSION;
         public override ushort? ResponseSize => 7;
         
-        public override bool IsProprietary => false;
+        
 
         public GetProductVersionCommand() : base(null)
         {

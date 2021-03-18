@@ -8,7 +8,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_STATUS;
         public override ushort? ResponseSize => 1;
         
-        public override bool IsProprietary => false;
+        
 
         public GetStatusCommand() : base(null)
         {

@@ -8,7 +8,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_SERIAL;
         public override ushort? ResponseSize => 9;
         
-        public override bool IsProprietary => false;
+        
 
         public GetHardwareSerialNumberCommand() : base(null)
         {

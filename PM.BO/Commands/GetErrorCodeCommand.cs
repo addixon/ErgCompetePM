@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_ERRORCODE;
         public override ushort? ResponseSize => 3;
         
-        public override bool IsProprietary => false;
+        
 
         public GetErrorCodeCommand() : base(null)
         {

@@ -39,11 +39,6 @@ namespace PM.BO
         public int? SecondsOfRest { get; set; }
 
         /// <summary>
-        /// Power goal in watts
-        /// </summary>
-        public int? PowerGoal { get; set; }
-
-        /// <summary>
         /// Target pace in seconds
         /// </summary>
         public int? TargetPace { get; set; }

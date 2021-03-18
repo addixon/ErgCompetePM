@@ -32,7 +32,7 @@ namespace BLL.Communication
         /// Constructor
         /// </summary>
         /// <param name="maxSize">The max size of the buffer</param>
-        public CommunicationBuffer(int maxSize = 96)
+        public CommunicationBuffer(int maxSize = 256)
         {
             MaxSize = maxSize;
             Position = 0;
@@ -68,7 +68,10 @@ namespace BLL.Communication
         public new void RemoveAt(int index)
         {
             base.RemoveAt(index);
-            Position--;
+            if (index < Position) 
+            { 
+                Position--;
+            }
         }
 
         /// <inheritdoc/>

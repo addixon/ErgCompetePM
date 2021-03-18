@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_POWER;
         public override ushort? ResponseSize => 3;
         
-        public override bool IsProprietary => false;
+        
 
         public new string Units = "Watts";
         public new string Resolution = "1w";

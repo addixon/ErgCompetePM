@@ -10,8 +10,6 @@ namespace PM.BO.Commands
     public class SetDateCommand : LongSetCommand
     {
         public override byte Code => (byte) CSAFECommand.SET_DATE;
-        public override ushort Size => 3;
-        public override bool IsProprietary => false;
 
         public SetDateCommand(uint[] data) : base(data)
         {
@@ -22,9 +20,9 @@ namespace PM.BO.Commands
         {
             Data = new uint[]
             {
-                BitConverter.GetBytes(year)[0],
-                BitConverter.GetBytes(month)[0],
-                BitConverter.GetBytes(day)[0]
+                BitConverter.GetBytes((ushort)year)[1],
+                BitConverter.GetBytes((ushort)month)[1],
+                BitConverter.GetBytes((ushort)day)[1]
             };
         }
     }

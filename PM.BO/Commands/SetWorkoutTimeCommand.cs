@@ -9,9 +9,7 @@ namespace PM.BO.Commands
     /// </summary>
     public class SetWorkoutTimeCommand : LongSetCommand
     {
-        public override byte Code => (byte) CSAFECommand.SET_TWORK;
-        public override ushort Size => 2;
-        public override bool IsProprietary => false;
+        public override byte Code => (byte) CSAFECommand.SET_TWORK;       
 
         public SetWorkoutTimeCommand(uint[] data) : base(data)
         {
@@ -22,9 +20,9 @@ namespace PM.BO.Commands
         {
             Data = new uint[]
             {
-                BitConverter.GetBytes(hours)[0],
-                BitConverter.GetBytes(minutes)[0],
-                BitConverter.GetBytes(seconds)[0]
+                BitConverter.GetBytes((ushort)hours)[1],
+                BitConverter.GetBytes((ushort)minutes)[1],
+                BitConverter.GetBytes((ushort)seconds)[1]
             };
         }
     }

@@ -11,8 +11,7 @@ namespace PM.BO.Commands
     public class SetSplitDurationCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SPLITDURATION;
-        public override ushort Size => 5;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetSplitDurationCommand(uint[] data) : base(data)
         {
@@ -21,7 +20,7 @@ namespace PM.BO.Commands
         public SetSplitDurationCommand(WorkoutDuration workoutDuration, int duration)
         {
             List<uint> data = new() { (uint)workoutDuration };
-            data.AddRange(BitConverter.GetBytes(duration).Select(b => (uint)b));
+            data.AddRange(BitConverter.GetBytes(duration).Select(b => (uint)b).Reverse());
 
             Data = data;
         }

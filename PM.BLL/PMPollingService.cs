@@ -428,7 +428,14 @@ namespace BLL
 
             foreach (PollInterval pollInterval in pollIntervals)
             {
-                commands.AddRange(_pollIntervals[pollInterval]);
+                try 
+                { 
+                    commands.AddRange(_pollIntervals[pollInterval]);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogCritical("Could not add poll intervals");
+                }
             }
 
             commands.Prepare();

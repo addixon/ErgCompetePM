@@ -10,8 +10,7 @@ namespace PM.BO.Commands
     public class SetSplitDurationTimeCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SPLITDURATION;
-        public override ushort Size => 5;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public new static string Units => "Seconds";
         public new static string Resolution => "0.01 Seconds";
@@ -30,7 +29,7 @@ namespace PM.BO.Commands
 
         public SetSplitDurationTimeCommand(int seconds)
         {
-            byte[] bytes = BitConverter.GetBytes(seconds);
+            byte[] bytes = BitConverter.GetBytes(seconds).Reverse().ToArray();
 
             Data = new uint[]
             {

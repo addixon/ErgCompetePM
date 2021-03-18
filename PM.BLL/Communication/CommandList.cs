@@ -42,6 +42,8 @@ namespace BLL.Communication
         /// </summary>
         private bool IsOpen = false;
 
+        private static readonly IList<uint> _wrapperCommands;
+
         /// <inheritdoc />
         public uint[] Buffer
         {
@@ -64,8 +66,16 @@ namespace BLL.Communication
         /// </summary>
         static CommandList()
         {
-            _prefix = new uint[] { 0xF0, 0xFD, 0x00 };
+            _prefix = new uint[] { 0xF1 };// { 0xF0, 0xFD, 0x00 };
             _suffix = new uint[] { 0xF2 };
+            _wrapperCommands = new List<uint>()
+            {
+                (uint) CSAFECommand.SET_USERCFG1,
+                (uint) CSAFECommand.SET_PMCFG,
+                (uint) CSAFECommand.SET_PMDATA,
+                (uint) CSAFECommand.GET_PMCFG,
+                (uint) CSAFECommand.GET_PMDATA
+            };
         }
 
         /// <summary>
@@ -182,17 +192,34 @@ namespace BLL.Communication
             int stopFrameFlagIndex = reader.Position;
             uint checksum;
 
-            do
+            stopFrameFlagIndex = ((List<uint>)reader).IndexOf((byte)FrameCommands.STOP_FRAME_FLAG, stopFrameFlagIndex + 1);
+
+            if (stopFrameFlagIndex == -1)
             {
-                stopFrameFlagIndex = ((List<uint>)reader).IndexOf((byte)FrameCommands.STOP_FRAME_FLAG, stopFrameFlagIndex + 1);
+                InvalidOperationException exception = new ("Improperly formatted frame. No stop flag was found.");
+                _logger.LogError(exception, "No stop flag found.");
+                throw exception;
+            }
 
-                if (stopFrameFlagIndex == -1)
+            // Unstuff bytes
+            for (int index = reader.Position; index < stopFrameFlagIndex - 1; index++)
+            {
+                if (reader[index] == 0xF3)
                 {
-                    throw new InvalidOperationException("Improperly formatted frame. No stop flag was found or incorrect checksum.");
+                    reader.RemoveAt(index);
+                    stopFrameFlagIndex--;
+                    reader[index] += 0xF0;
                 }
+            }
 
-                checksum = reader.Skip(reader.Position).Take(stopFrameFlagIndex - reader.Position - 1).Aggregate<uint, uint>(0, _calculateChecksum);
-            } while (checksum != reader[stopFrameFlagIndex - 1]);
+            checksum = reader.Skip(reader.Position).Take(stopFrameFlagIndex -reader.Position - 1).Aggregate<uint, uint>(0, _calculateChecksum);
+            
+            if (checksum != reader[stopFrameFlagIndex-1])
+            {
+                InvalidOperationException exception = new("Improperly formatted frame. Checksum did not match.");
+                _logger.LogError(exception, "Checksum did not match.");
+                throw exception;
+            }
 
             // Remove checksum and end flag
             reader.Truncate(stopFrameFlagIndex - 1);
@@ -203,12 +230,12 @@ namespace BLL.Communication
             }
 
             uint status = reader.ReadByte();
-
+            int listHighWaterMark = 0;
             do
             {
                 uint commandCode = reader.ReadByte();
 
-                if (commandCode == (uint)CSAFECommand.SET_USERCFG1)
+                if (_wrapperCommands.Contains(commandCode))
                 {
                     uint size = reader.ReadByte();
                     int startIndex = reader.Position;
@@ -217,7 +244,9 @@ namespace BLL.Communication
                     {
                         uint proprietaryCommandCode = reader.ReadByte();
 
-                        ICommand wrappedCommand = this.First(command => command.Code == proprietaryCommandCode && command.IsProprietary);
+                        ICommand wrappedCommand = this.Skip(listHighWaterMark).First(command => command.Code == proprietaryCommandCode && command.ProprietaryWrapper == commandCode);
+                        listHighWaterMark = IndexOf(wrappedCommand)+1;
+
                         if (wrappedCommand is GetCommand)
                         {
                             try
@@ -236,7 +265,9 @@ namespace BLL.Communication
                     continue;
                 }
 
-                ICommand command = this.First(command => command.Code == commandCode && !command.IsProprietary);
+                ICommand command = this.Skip(listHighWaterMark).First(command => command.Code == commandCode && command.ProprietaryWrapper == null);
+                listHighWaterMark = IndexOf(command)+1;
+
                 if (command is GetCommand)
                 {
                     try
@@ -266,43 +297,44 @@ namespace BLL.Communication
         };
 
         /// <summary>
-        /// Converts the commands from objects into bytecode
+        /// Converts the commands from objects into bytecode for sending to PM
         /// </summary>
         private void FormatCommandData()
         {
-            // Group as many PM3 commands together as possible, but allow them to be not first in the list
+            // Group as many proprietary commands together as possible, but allow them to be not first in the list
             Dictionary<int, List<ICommand>> commandGroups = new();
-            bool? current = null;
+            uint? current = null;
             int size = 0;
 
             foreach(ICommand command in this)
             {
-                if (current == null)
+                // First command, get group started
+                if (!commandGroups.Any())
                 {
-                    current = command.IsProprietary;
+                    current = command.ProprietaryWrapper;
                     commandGroups.Add(0, new List<ICommand> { command });
                     continue;
                 }
 
-                if (current == command.IsProprietary)
+                if (current == command.ProprietaryWrapper)
                 {
                     commandGroups[size].Add(command);
                     continue;
                 }
 
-                current = command.IsProprietary;
+                current = command.ProprietaryWrapper;
                 commandGroups.Add(++size, new List<ICommand> { command });
             }
 
             foreach(List<ICommand> commandGroup in commandGroups.Values)
             {
-                bool isPM3 = commandGroup.First().IsProprietary;
+                uint? wrapper = commandGroup.First().ProprietaryWrapper;
 
-                if (isPM3)
+                if (wrapper != null)
                 {
-                    // Add PM3 commands
-                    _commandWriter.WriteByte((uint)CSAFECommand.SET_USERCFG1);
-                    _commandWriter.WriteByte((uint)(commandGroup.Sum(command => command.Size)+commandGroup.Count+commandGroup.Count(command => command is SetCommand)));
+                    // Add wrapped commands
+                    _commandWriter.WriteByte(wrapper.Value);
+                    _commandWriter.WriteByte((uint)(commandGroup.Where(command => command is SetCommand).Sum(command => command.Size + 1)+commandGroup.Count));
                 }
 
                 foreach (ICommand command in commandGroup)
@@ -322,22 +354,13 @@ namespace BLL.Communication
 
             uint checksum = 0x0;
 
-            //checksum and byte stuffing
+            //checksum
             for (int index = _prefix.Length; index < _commandWriter.Size; index++)
             {
                 uint currentByte = _commandWriter[index];
 
                 //calculate checksum
                 checksum ^= currentByte;
-
-                // byte stuffing
-                if (0xF0 <= currentByte && currentByte <= 0xF3)
-                {
-                    uint[] byteStuffedValue = GetByteStuffingValue(currentByte);
-                    _commandWriter.RemoveAt(index);
-                    _commandWriter.InsertRange(index, byteStuffedValue);
-                    index += byteStuffedValue.Length - 1;
-                }
             }
 
             // Append CheckSum
@@ -360,24 +383,6 @@ namespace BLL.Communication
             }
 
             _commandWriter.Insert(0, reportId);
-
-        }
-
-        /// <summary>
-        /// Gets the equatable byte stuffed value
-        /// </summary>
-        /// <param name="frameByte">The byte to convert</param>
-        /// <returns>The equatable value</returns>
-        private static uint[] GetByteStuffingValue(uint frameByte)
-        {
-            return frameByte switch
-            {
-                0xF0 => new uint[] { 0xF3, 0x00 },
-                0xF1 => new uint[] { 0xF3, 0x01 },
-                0xF2 => new uint[] { 0xF3, 0x02 },
-                0xF3 => new uint[] { 0xF3, 0x03 },
-                _ => throw new InvalidOperationException("Frame byte to be stuffed was unknown: " + frameByte),
-            };
         }
     }
 }

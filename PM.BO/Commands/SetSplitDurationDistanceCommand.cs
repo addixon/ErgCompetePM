@@ -10,8 +10,7 @@ namespace PM.BO.Commands
     public class SetSplitDurationDistanceCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SPLITDURATION;
-        public override ushort Size => 5;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public new static string Units => "Meters";
         public new static string Resolution => "1 Meter";
@@ -31,7 +30,7 @@ namespace PM.BO.Commands
 
         public SetSplitDurationDistanceCommand(int meters)
         {
-            byte[] bytes = BitConverter.GetBytes(meters);
+            byte[] bytes = BitConverter.GetBytes(meters).Reverse().ToArray();
 
             Data = new uint[]
             {

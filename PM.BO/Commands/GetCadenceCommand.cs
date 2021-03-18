@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_CADENCE;
         public override ushort? ResponseSize => 3;
         
-        public override bool IsProprietary => false;
+        
 
         private const ushort _refreshRate = 2;
 

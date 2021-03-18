@@ -12,8 +12,7 @@ namespace PM.BO.Commands
     public class SetScreenStateCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SCREENSTATE;
-        public override ushort Size => 2;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetScreenStateCommand(uint[] data) : base(data)
         {

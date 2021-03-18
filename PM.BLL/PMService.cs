@@ -256,7 +256,7 @@ namespace BLL
                 return null;
             }
 
-            IEnumerable<ICommand>? builtCommands = BuildInterval(interval, workoutDetails.Value, true);
+            IEnumerable<ICommand>? builtCommands = BuildInterval(interval, workoutDetails.Value);
             
             if (builtCommands == null)
             {
@@ -326,7 +326,7 @@ namespace BLL
 
                 atLeastOneIntervalWithUndefinedRest = atLeastOneIntervalWithUndefinedRest || !workoutDetails.Value.RequireRest;
 
-                IEnumerable<ICommand>? intervalCommands = BuildInterval(currentInterval, workoutDetails.Value, false);
+                IEnumerable<ICommand>? intervalCommands = BuildInterval(currentInterval, workoutDetails.Value);
 
                 if (intervalCommands == null)
                 {
@@ -360,11 +360,11 @@ namespace BLL
         /// <param name="interval">The interval</param>
         /// <param name="workoutDetails">The workout details</param>
         /// <returns>Enumerable of the commands</returns>
-        private IEnumerable<ICommand>? BuildInterval(Interval interval, WorkoutDetails workoutDetails, bool setWorkoutType)
+        private IEnumerable<ICommand>? BuildInterval(Interval interval, WorkoutDetails workoutDetails)
         {
-            if (interval.WorkoutType == null)
+            if (interval.WorkoutType == null && interval.IntervalType == null)
             {
-                _logger.LogCritical("Workout type was unexpectedly null. No workout has been set.");
+                _logger.LogCritical("Workout type and Interval type was unexpectedly null. One must be specified based on Variable vs Fixed. No workout has been set.");
                 return null;
             }
 
@@ -395,29 +395,29 @@ namespace BLL
                 }
             }
 
-            if (splitValue == null)
+            if (splitValue == null && workoutDetails.RequireSplits)
             {
                 _logger.LogCritical("Split Value was unexpectedly null. No workout has been set.");
                 return null;
             }
 
             List<ICommand> commands = new();
-            if (setWorkoutType)
+            if (interval.WorkoutType != null)
             {
                 commands.Add(new SetWorkoutTypeCommand(interval.WorkoutType.Value));
             }
 
             commands.Add(new SetWorkoutDurationCommand(workoutDetails.WorkoutDuration, durationValue));
 
-            if (workoutDetails.RequireSplits && interval.Splits != null)
+            if (workoutDetails.RequireSplits && splitValue != null)
             {
                 commands.Add(new SetSplitDurationCommand(workoutDetails.WorkoutDuration, splitValue.Value));
             }
-            else if (workoutDetails.RequireRest && interval.SecondsOfRest != null)
+            else if ((workoutDetails.RequireRest || interval.IntervalType != null) && interval.SecondsOfRest != null)
             {
                 commands.Add(new SetRestDurationCommand(interval.SecondsOfRest.Value));
             }
-
+            
             if (interval.TargetPace != null)
             {
                 commands.Add(new SetTargetPaceCommand(interval.TargetPace.Value));

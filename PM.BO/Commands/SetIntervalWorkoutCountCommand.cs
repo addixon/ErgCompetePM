@@ -8,8 +8,7 @@ namespace PM.BO.Commands
     public class SetIntervalWorkoutCountCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_INTERVALWORKOUTCOUNT;
-        public override ushort Size => 1;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetIntervalWorkoutCountCommand(uint[] data) : base(data)
         {

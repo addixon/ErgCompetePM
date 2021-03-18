@@ -1,6 +1,7 @@
 ﻿
 using PM.BO.Enums;
 using System;
+using System.Linq;
 
 namespace PM.BO.Commands
 {
@@ -10,8 +11,6 @@ namespace PM.BO.Commands
     public class SetHorizontalDistanceCommand : LongSetCommand
     {
         public override byte Code => (byte) CSAFECommand.SET_HORIZONTAL;
-        public override ushort Size => 3;
-        public override bool IsProprietary => false;
 
         public SetHorizontalDistanceCommand(uint[] data) : base(data)
         {
@@ -20,7 +19,7 @@ namespace PM.BO.Commands
 
         public SetHorizontalDistanceCommand(int distance, UnitType units)
         {
-            byte[] bytes = BitConverter.GetBytes(distance);
+            byte[] bytes = BitConverter.GetBytes((ushort)distance).Reverse().ToArray();
 
             Data = new uint[]
             {

@@ -1,5 +1,6 @@
 ﻿using PM.BO.Enums;
 using System;
+using System.Linq;
 
 namespace PM.BO.Commands
 {
@@ -9,8 +10,6 @@ namespace PM.BO.Commands
     public class SetPowerTargetCommand : LongSetCommand
     {
         public override byte Code => (byte) CSAFECommand.SET_POWER;
-        public override ushort Size => 3;
-        public override bool IsProprietary => false;
 
         public SetPowerTargetCommand(uint[] data) : base(data)
         {
@@ -19,7 +18,7 @@ namespace PM.BO.Commands
 
         public SetPowerTargetCommand(int watts)
         {
-            byte[] bytes = BitConverter.GetBytes(watts);
+            byte[] bytes = BitConverter.GetBytes((ushort)watts).Reverse().ToArray();
 
             Data = new uint[]
             {

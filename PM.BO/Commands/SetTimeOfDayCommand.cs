@@ -9,8 +9,6 @@ namespace PM.BO.Commands
     public class SetTimeOfDayCommand : LongSetCommand
     {
         public override byte Code => (byte) CSAFECommand.SET_TIME;
-        public override ushort Size => 3;
-        public override bool IsProprietary => false;
 
         public SetTimeOfDayCommand(uint[] data) : base(data)
         {
@@ -21,9 +19,9 @@ namespace PM.BO.Commands
         {
             Data = new uint[]
             {
-                BitConverter.GetBytes(hour)[0],
-                BitConverter.GetBytes(minute)[0],
-                BitConverter.GetBytes(second)[0]
+                BitConverter.GetBytes((ushort)hour)[1],
+                BitConverter.GetBytes((ushort)minute)[0],
+                BitConverter.GetBytes((ushort)second)[0]
             };
         }
     }

@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) PM3Command.GET_RESTTIME;
         public override ushort? ResponseSize => 2;
         
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
         private const ushort _refreshRate = 10;
 
         public GetRestTimeCommand() : base(_refreshRate)

@@ -11,8 +11,7 @@ namespace PM.BO.Commands
     public class SetConfigureWorkoutCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.CONFIGURE_WORKOUT;
-        public override ushort Size => 0;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetConfigureWorkoutCommand(uint[] data) : base(data)
         {

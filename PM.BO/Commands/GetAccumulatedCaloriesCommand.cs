@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_CALORIES;
         public override ushort? ResponseSize => 2;
         
-        public override bool IsProprietary => false;
+        
 
         private const ushort _refreshRate = 2;
 

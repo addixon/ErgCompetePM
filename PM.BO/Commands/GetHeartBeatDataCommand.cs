@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte)PM3Command.GET_HEARTBEATDATA;
         public override ushort? ResponseSize => 33;
         
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
 
         public new string Resolution = "1 ms";
 

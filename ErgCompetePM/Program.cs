@@ -95,6 +95,81 @@ namespace ErgCompetePM
 
             _pmService.SetJustRowWorkout(_activeDevices.First(), false);
 
+            Interval interval = new()
+            {
+                Duration = 2000,
+                WorkoutType = PM.BO.Enums.WorkoutType.FixedDistanceWithSplits,
+                Splits = 400
+            };
+            _pmService.SetFixedWorkout(_activeDevices.First(), interval);
+
+            Interval[] intervals = new Interval[]
+            {
+                new()
+                {
+                    Duration = 500,
+                    IntervalType = PM.BO.Enums.IntervalType.Distance,
+                    SecondsOfRest = 60,
+                    TargetPace = 100
+                },
+                new()
+                {
+                    Duration = 180,
+                    IntervalType = PM.BO.Enums.IntervalType.Time,
+                    SecondsOfRest = 0,
+                    TargetPace = 100
+                },
+                //new()
+                //{
+                //    Duration = 1000,
+                //    IntervalType = PM.BO.Enums.IntervalType.Distance,
+                //    SecondsOfRest = 0,
+                //    TargetPace = 100
+                //},
+                //new()
+                //{
+                //    Duration = 600,
+                //    IntervalType = PM.BO.Enums.IntervalType.Time,
+                //    SecondsOfRest = 120,
+                //    TargetPace = 100
+                //}
+            };
+            _pmService.SetVariableWorkout(_activeDevices.First(), intervals);
+
+
+
+            Interval[] intervals1 = new Interval[]
+            {
+                new()
+                {
+                    Duration = 100,
+                    IntervalType = PM.BO.Enums.IntervalType.DistanceUndefinedRest,
+                    TargetPace = 130
+                },
+                new()
+                {
+                    Duration = 120,
+                    IntervalType = PM.BO.Enums.IntervalType.TimeUndefinedRest,
+                    TargetPace = 130
+                },
+                //new()
+                //{
+                //    Duration = 1000,
+                //    IntervalType = PM.BO.Enums.IntervalType.Distance,
+                //    SecondsOfRest = 0,
+                //    TargetPace = 100
+                //},
+                //new()
+                //{
+                //    Duration = 600,
+                //    IntervalType = PM.BO.Enums.IntervalType.Time,
+                //    SecondsOfRest = 120,
+                //    TargetPace = 100
+                //}
+            }; 
+            _pmService.SetVariableWorkout(_activeDevices.First(), intervals1);
+
+
             // Run forever
             do { } while (true);
         }
@@ -189,7 +264,7 @@ namespace ErgCompetePM
             Console.WriteLine("Device found!");
 
             _activeDevices.Add(deviceArgs.SerialNumber);
-            _pmService.StartPolling(deviceArgs.SerialNumber);
+            //_pmService.StartPolling(deviceArgs.SerialNumber);
         }
 
         /// <summary>

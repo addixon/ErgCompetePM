@@ -10,8 +10,7 @@ namespace PM.BO.Commands
     public class SetRestDurationCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_RESTDURATION;
-        public override ushort Size => 2;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetRestDurationCommand(uint[] data) : base(data)
         {
@@ -19,7 +18,7 @@ namespace PM.BO.Commands
 
         public SetRestDurationCommand(int restDurationInSeconds)
         {
-            Data = BitConverter.GetBytes((ushort)restDurationInSeconds * 100).Select(b => (uint)b);
+            Data = BitConverter.GetBytes((ushort)restDurationInSeconds).Select(b => (uint)b).Reverse();
         }
     }
 }

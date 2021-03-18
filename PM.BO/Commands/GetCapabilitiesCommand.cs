@@ -10,7 +10,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_CAPS;
         public override ushort? ResponseSize { get; } = 0;
         
-        public override bool IsProprietary => false;
+        
         protected override IEnumerable<uint>? Data { get; }
 
 

@@ -10,9 +10,6 @@ namespace PM.BO.Commands
     public class SetUserIdDigitsCommand : LongSetCommand
     {
         public override byte Code => (byte) CSAFECommand.IDDIGITS;
-        public override ushort Size => 1;
-        
-        public override bool IsProprietary => false;
 
         public SetUserIdDigitsCommand(uint[] data) : base(data)
         {
@@ -26,7 +23,7 @@ namespace PM.BO.Commands
                 throw new ArgumentException("Value must be between 2 and 5, inclusively.");
             }
 
-            Data = BitConverter.GetBytes(digits).Take(1).Select(b => (uint) b);
+            Data = BitConverter.GetBytes(digits).Reverse().Take(1).Select(b => (uint) b);
         }
     }
 }

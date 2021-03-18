@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_ID;
         public override ushort? ResponseSize => PMSettings.NumberOfIdDigits;
         
-        public override bool IsProprietary => false;
+        
 
         public GetUserIdNumberCommand() : base(null)
         {

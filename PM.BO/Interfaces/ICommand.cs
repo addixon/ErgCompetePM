@@ -14,7 +14,7 @@ namespace PM.BO.Interfaces
 
         ushort? ResponseSize { get; }
 
-        bool IsProprietary { get; }
+        uint? ProprietaryWrapper { get; }
 
         bool IsShortCommand { get; }
 

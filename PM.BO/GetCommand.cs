@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace PM.BO
 {
-    public abstract class GetCommand : ICommand
+    public abstract class GetCommand : Command, ICommand
     {
         public string Name { 
             get 
@@ -27,15 +27,7 @@ namespace PM.BO
             } 
         }
 
-        public abstract byte Code { get; }
-
-        public abstract PMCommandType CommandType { get; }
-
-        public abstract ushort? ResponseSize { get; }
-
-        public ushort Size => (ushort)(Data != null ? Data.Count() : 0);
-
-        public abstract bool IsProprietary { get; }
+        public virtual uint? ProprietaryWrapper => null;
 
         public ushort? RefreshRate { get; }
 
@@ -57,36 +49,5 @@ namespace PM.BO
         {
             RefreshRate = refreshRate;
         }
-
-        public void Write(ICommandWriter commandWriter)
-        {
-            commandWriter.WriteByte(Code);
-
-            if (Data == null)
-            {
-                return;
-            }
-
-            foreach(uint value in Data)
-            {
-                commandWriter.WriteByte((byte)value);
-            }
-        }
-
-        public void Read(IResponseReader responseReader)
-        {
-            ushort size = (ushort) responseReader.ReadByte();
-
-            if (size == ResponseSize)
-            {
-                ReadImplementation(responseReader, size);
-            }
-            else
-            {
-                throw new InvalidOperationException($"Unexpected size. Encountered size [{size}] and expected [{ResponseSize}].");
-            }
-        }
-
-        protected abstract void ReadImplementation(IResponseReader responseReader, ushort size);
     }
 }

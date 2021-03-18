@@ -10,8 +10,7 @@ namespace PM.BO.Commands
     public class SetTargetPaceCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_TARGETPACE;
-        public override ushort Size => 2;
-        public override bool IsProprietary => true;
+        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetTargetPaceCommand(uint[] data) : base(data)
         {
@@ -19,7 +18,7 @@ namespace PM.BO.Commands
 
         public SetTargetPaceCommand(int targetPaceInSeconds)
         {
-            Data = BitConverter.GetBytes(targetPaceInSeconds * 100).Select(b => (uint)b);
+            Data = BitConverter.GetBytes(targetPaceInSeconds * 100).Reverse().Select(b => (uint)b);
         }
     }
 }
