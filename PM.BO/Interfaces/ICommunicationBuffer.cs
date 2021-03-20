@@ -15,6 +15,17 @@ namespace PM.BO.Interfaces
         int Position { get; }
 
         /// <summary>
+        /// Max buffer size
+        /// </summary>
+        int MaxSize { get; }
+
+        /// <summary>
+        /// The positions remaining
+        /// </summary>
+        /// <returns>the positions remaining in the buffer</returns>
+        int PositionsRemaining();
+
+        /// <summary>
         /// Resets and clears the buffer
         /// </summary>
         void Reset();

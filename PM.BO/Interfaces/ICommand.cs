@@ -1,4 +1,5 @@
 ﻿using PM.BO.Enums;
+using System.Collections.Generic;
 
 namespace PM.BO.Interfaces
 {
@@ -12,9 +13,11 @@ namespace PM.BO.Interfaces
 
         ushort Size { get; }
 
-        ushort? ResponseSize { get; }
+        uint? Wrapper { get; }
 
-        uint? ProprietaryWrapper { get; }
+        IEnumerable<uint>? ParentTo { get; }
+
+        ushort? ResponseSize { get; }
 
         bool IsShortCommand { get; }
 
@@ -24,9 +27,11 @@ namespace PM.BO.Interfaces
 
         string? Resolution { get; }
 
-        ushort? Order { get; set; }
+        ushort TotalSize { get; }
 
         dynamic? Value { get; }
+
+        uint[] GetBytes();
 
         void Write(ICommandWriter commandWriter);
 

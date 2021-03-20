@@ -10,7 +10,7 @@ namespace PM.BO.Commands
     public class SetIntervalTypeCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_INTERVALTYPE;
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetIntervalTypeCommand(uint[] data) : base(data)
         {

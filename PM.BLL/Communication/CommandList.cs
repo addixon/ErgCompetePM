@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using PM.BLL.Extensions;
 using PM.BO;
 using PM.BO.Enums;
 using PM.BO.Interfaces;
@@ -42,21 +43,18 @@ namespace BLL.Communication
         /// </summary>
         private bool IsOpen = false;
 
+        /// <summary>
+        /// Special wrapper commands
+        /// </summary>
         private static readonly IList<uint> _wrapperCommands;
 
-        /// <inheritdoc />
-        public uint[] Buffer
-        {
-            get
-            {
-                if (CanSend)
-                {
-                    return _commandWriter.ToArray();
-                }
+        /// <summary>
+        /// Formatted frames
+        /// </summary>
+        private readonly IList<uint[]> _frames;
 
-                throw new InvalidOperationException("Buffer is not available until CommandList has been prepared.");
-            }
-        }
+        /// <inheritdoc />
+        public int TotalFrames => _frames.Count;
 
         /// <inheritdoc />
         public bool CanSend => !IsOpen;
@@ -87,6 +85,8 @@ namespace BLL.Communication
             _commandWriter = new CommandWriter();
             _logger = logger;
             IsOpen = true;
+
+            _frames = new List<uint[]>();
         }
 
         /// <inheritdoc />
@@ -107,13 +107,11 @@ namespace BLL.Communication
         {
             if (IsOpen)
             {
-                command.Order = (ushort)Count;
                 base.Add(command);
+                return;
             }
-            else
-            {
-                throw new InvalidOperationException("Commands cannot be added to already prepared list");
-            }
+
+            throw new InvalidOperationException("Commands cannot be added to already prepared list");
         }
 
         /// <inheritdoc />
@@ -121,17 +119,11 @@ namespace BLL.Communication
         {
             if (IsOpen)
             {
-                ushort order = (ushort)Count;
-                foreach (ICommand command in commands)
-                {
-                    command.Order = order++;
-                }
                 base.AddRange(commands);
+                return;
             }
-            else
-            {
-                throw new InvalidOperationException("Commands cannot be added to already prepared list");
-            }
+           
+            throw new InvalidOperationException("Commands cannot be added to already prepared list");
         }
 
         /// <inheritdoc />
@@ -139,16 +131,26 @@ namespace BLL.Communication
         {
             if (IsOpen)
             {
-                _commandWriter.Reset();
-
-                FormatCommandData();
-                FormatFrame();
+                IEnumerable<PreparedCommand> preparedCommands = PrepareCommands();
+                PrepareFrames(preparedCommands);
 
                 // Ensure no more commands are added
                 IsOpen = false;
             }
         }
 
+        /// <inheritdoc />
+        public uint[] GetFrame(int frameNumber)
+        {
+            if (CanSend)
+            {
+                return _frames[frameNumber];
+            }
+
+            throw new InvalidOperationException("Frames are not available until CommandList has been prepared.");
+        }
+
+        // TODO: Refactor read into something smaller
         /// <inheritdoc />
         public bool Read(IResponseReader reader)
         {
@@ -244,7 +246,7 @@ namespace BLL.Communication
                     {
                         uint proprietaryCommandCode = reader.ReadByte();
 
-                        ICommand wrappedCommand = this.Skip(listHighWaterMark).First(command => command.Code == proprietaryCommandCode && command.ProprietaryWrapper == commandCode);
+                        ICommand wrappedCommand = this.Skip(listHighWaterMark).First(command => command.Code == proprietaryCommandCode && command.Wrapper == commandCode);
                         listHighWaterMark = IndexOf(wrappedCommand)+1;
 
                         if (wrappedCommand is GetCommand)
@@ -265,7 +267,7 @@ namespace BLL.Communication
                     continue;
                 }
 
-                ICommand command = this.Skip(listHighWaterMark).First(command => command.Code == commandCode && command.ProprietaryWrapper == null);
+                ICommand command = this.Skip(listHighWaterMark).First(command => command.Code == commandCode && command.Wrapper == null);
                 listHighWaterMark = IndexOf(command)+1;
 
                 if (command is GetCommand)
@@ -296,50 +298,118 @@ namespace BLL.Communication
             return accumulate ^ source;
         };
 
-        /// <summary>
-        /// Converts the commands from objects into bytecode for sending to PM
-        /// </summary>
-        private void FormatCommandData()
+        private IEnumerable<PreparedCommand> PrepareCommands()
         {
-            // Group as many proprietary commands together as possible, but allow them to be not first in the list
-            Dictionary<int, List<ICommand>> commandGroups = new();
-            uint? current = null;
-            int size = 0;
+            IList<PreparedCommand> preparedCommands = new List<PreparedCommand>();
 
-            foreach(ICommand command in this)
+            int parentCommandsFound = 0;
+            for (int commandIndex = 0; commandIndex < Count;)
             {
-                // First command, get group started
-                if (!commandGroups.Any())
+                ICommand command = this[commandIndex++];
+                IList<ICommand>? childCommands = new List<ICommand>();
+                IList<uint>? parentTo = command.ParentTo?.ToList();
+
+                if (parentTo == null)
                 {
-                    current = command.ProprietaryWrapper;
-                    commandGroups.Add(0, new List<ICommand> { command });
+                    preparedCommands.Add(new PreparedCommand(command, null));
                     continue;
                 }
 
-                if (current == command.ProprietaryWrapper)
+                // if there are commands after this one
+                if (commandIndex < Count)
                 {
-                    commandGroups[size].Add(command);
-                    continue;
+                    parentCommandsFound++;
+                    ICommand childCommand;
+                    int targetIndex = commandIndex;
+                    while (targetIndex < Count && parentTo.Contains((childCommand = this[targetIndex]).Code))
+                    {
+                        if (parentCommandsFound > 1 && this[targetIndex].Code == (byte)PM3Command.SET_WORKOUTTYPE)
+                        {
+                            // Special case where WorkoutType would exist outside an interval
+                            break;
+                        }
+
+                        // collect next record as a child
+                        childCommands.Add(childCommand);
+                        targetIndex++;
+                    }
+
+                    commandIndex = targetIndex;
                 }
 
-                current = command.ProprietaryWrapper;
-                commandGroups.Add(++size, new List<ICommand> { command });
+                preparedCommands.Add(new PreparedCommand(command, childCommands));
             }
 
-            foreach(List<ICommand> commandGroup in commandGroups.Values)
-            {
-                uint? wrapper = commandGroup.First().ProprietaryWrapper;
+            return preparedCommands;
+        }
 
-                if (wrapper != null)
+        private void PrepareFrames(IEnumerable<PreparedCommand> preparedCommands)
+        {
+            IList<IGrouping<uint?, PreparedCommand>> groups = preparedCommands.ChunkBy(command => command.Wrapper).ToList();
+
+            int frameSize = 0;
+            int maxFrameSize = _commandWriter.MaxSize;
+            int totalGroups = groups.Count;
+
+            if (!groups.Any())
+            {
+                throw new InvalidOperationException("Group count was unexpectedly 0.");
+            }
+
+            int maxFrameContentsSize = maxFrameSize - _prefix.Length - _suffix.Length - 1;
+
+            _commandWriter.Reset();
+            foreach (IGrouping<uint?, PreparedCommand> currentGroup in groups)
+            {
+                if (preparedCommands.Any(command => command.TotalSize > maxFrameContentsSize))
                 {
-                    // Add wrapped commands
-                    _commandWriter.WriteByte(wrapper.Value);
-                    _commandWriter.WriteByte((uint)(commandGroup.Where(command => command is SetCommand).Sum(command => command.Size + 1)+commandGroup.Count));
+                    throw new InvalidOperationException("Frame creation impossible. A single group is too large for the frame.");
                 }
 
-                foreach (ICommand command in commandGroup)
+                IList<PreparedCommand> groupCommands = currentGroup.ToList();
+
+                for(int commandIndex = 0; commandIndex < groupCommands.Count;)
                 {
-                    command.Write(_commandWriter);
+                    int frameSizeCheck = frameSize;
+                    int iterationElements = 0;
+
+                    // Determine the commands that can fit in this frame
+                    for(int index = commandIndex; index < groupCommands.Count; index++, iterationElements++)
+                    {
+                        int groupSize = groupCommands[index].TotalSize;
+                        frameSize += groupSize;
+                        frameSizeCheck += groupSize;
+
+                        if (frameSizeCheck > maxFrameContentsSize)
+                        {
+                            // this command made it go over, so stop checking
+                            break;
+                        }
+                    }
+
+                    IEnumerable<PreparedCommand> iterationCommands = groupCommands.Skip(commandIndex).Take(iterationElements);
+
+                    // write the wrapper, if there is one and hasn't been written yet
+                    if (currentGroup.Key != null)
+                    {
+                        _commandWriter.Add(currentGroup.Key.Value);
+                        _commandWriter.Add((uint)iterationCommands.Sum(c => c.TotalSize));
+                    }
+
+                    foreach (PreparedCommand command in iterationCommands)
+                    { 
+                        // write all commands
+                        _commandWriter.AddRange(command.GetBytes());
+                        commandIndex++;
+
+                        continue;
+                    }
+                    
+                    // Frame was going to be too big
+                    FinalizeFrame();
+                    frameSize = 0;
+
+                    string frame = string.Join(' ', _frames[_frames.Count-1].Select(b => b.ToString("X2")));
                 }
             }
         }
@@ -347,7 +417,7 @@ namespace BLL.Communication
         /// <summary>
         /// Creates the frame, inserting the command data and generating checksum
         /// </summary>
-        private void FormatFrame()
+        private void FinalizeFrame()
         {
             // Apply prefix
             _commandWriter.PrependRange(_prefix);
@@ -372,10 +442,14 @@ namespace BLL.Communication
             uint reportId;
             int length = _commandWriter.Length;
 
+            //reportId = 0x04;
+            //_commandWriter.AddRange(Enumerable.Repeat<uint>(0, 64 - length - 1));
+
+
             if (length <= 121)
             {
                 reportId = 0x02;
-                _commandWriter.AddRange(Enumerable.Repeat<uint>(0, 121 - length));
+                _commandWriter.AddRange(Enumerable.Repeat<uint>(0, 121 - length - 1));
             }
             else
             {
@@ -383,6 +457,9 @@ namespace BLL.Communication
             }
 
             _commandWriter.Insert(0, reportId);
+
+            _frames.Add(_commandWriter.ToArray());
+            _commandWriter.Reset();
         }
     }
 }

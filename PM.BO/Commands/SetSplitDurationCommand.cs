@@ -11,7 +11,7 @@ namespace PM.BO.Commands
     public class SetSplitDurationCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SPLITDURATION;
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetSplitDurationCommand(uint[] data) : base(data)
         {

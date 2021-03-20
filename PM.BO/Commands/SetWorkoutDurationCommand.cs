@@ -11,7 +11,7 @@ namespace PM.BO.Commands
     public class SetWorkoutDurationCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_WORKOUTDURATION;
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetWorkoutDurationCommand(uint[] data) : base(data)
         {

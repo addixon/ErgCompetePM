@@ -10,7 +10,7 @@ namespace PM.BO.Commands
     public class SetTargetPaceCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_TARGETPACE;
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetTargetPaceCommand(uint[] data) : base(data)
         {

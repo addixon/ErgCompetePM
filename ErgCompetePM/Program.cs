@@ -51,9 +51,9 @@ namespace ErgCompetePM
         /// <summary>
         /// Timer to ensure that the hub remains as connected as possible
         /// </summary>
-        private Timer? _hubConnectionTimer;
+        private readonly Timer? _hubConnectionTimer;
 
-        private static IList<string> _activeDevices;
+        private static readonly IList<string> _activeDevices;
 
         /// <summary>
         /// Static constructor
@@ -93,82 +93,70 @@ namespace ErgCompetePM
 
             Thread.Sleep(5000);
 
-            _pmService.SetJustRowWorkout(_activeDevices.First(), false);
+            // Establish a Just Row workout without splits and set the screen
+            //_pmService.SetJustRowWorkout(_activeDevices.First(), false);
 
-            Interval interval = new()
-            {
-                Duration = 2000,
-                WorkoutType = PM.BO.Enums.WorkoutType.FixedDistanceWithSplits,
-                Splits = 400
-            };
-            _pmService.SetFixedWorkout(_activeDevices.First(), interval);
+            // Establish a fixed interval workout for distance with splits
+            //Interval interval = new()
+            //{
+            //    Duration = 2000,
+            //    WorkoutType = PM.BO.Enums.WorkoutType.FixedDistanceWithSplits,
+            //    Splits = 400
+            //};
+            //_pmService.SetFixedWorkout(_activeDevices.First(), interval);
+            
+            // Establish a variable interval workout for distance, time, distance, and time with defined rest intervals
+            //Interval[] intervals = new Interval[]
+            //{
+            //    new()
+            //    {
+            //        Duration = 500,
+            //        IntervalType = PM.BO.Enums.IntervalType.Distance,
+            //        SecondsOfRest = 60,
+            //        TargetPace = 100
+            //    },
+            //    new()
+            //    {
+            //        Duration = 180,
+            //        IntervalType = PM.BO.Enums.IntervalType.Time,
+            //        SecondsOfRest = 0,
+            //        TargetPace = 100
+            //    },
+            //    new()
+            //    {
+            //        Duration = 1000,
+            //        IntervalType = PM.BO.Enums.IntervalType.Distance,
+            //        SecondsOfRest = 0,
+            //        TargetPace = 100
+            //    },
+            //    new()
+            //    {
+            //        Duration = 600,
+            //        IntervalType = PM.BO.Enums.IntervalType.Time,
+            //        SecondsOfRest = 120,
+            //        TargetPace = 100
+            //    }
+            //};
+            //_pmService.SetVariableWorkout(_activeDevices.First(), intervals);
 
-            Interval[] intervals = new Interval[]
-            {
-                new()
-                {
-                    Duration = 500,
-                    IntervalType = PM.BO.Enums.IntervalType.Distance,
-                    SecondsOfRest = 60,
-                    TargetPace = 100
-                },
-                new()
-                {
-                    Duration = 180,
-                    IntervalType = PM.BO.Enums.IntervalType.Time,
-                    SecondsOfRest = 0,
-                    TargetPace = 100
-                },
-                //new()
-                //{
-                //    Duration = 1000,
-                //    IntervalType = PM.BO.Enums.IntervalType.Distance,
-                //    SecondsOfRest = 0,
-                //    TargetPace = 100
-                //},
-                //new()
-                //{
-                //    Duration = 600,
-                //    IntervalType = PM.BO.Enums.IntervalType.Time,
-                //    SecondsOfRest = 120,
-                //    TargetPace = 100
-                //}
-            };
-            _pmService.SetVariableWorkout(_activeDevices.First(), intervals);
-
-
-
-            Interval[] intervals1 = new Interval[]
-            {
-                new()
-                {
-                    Duration = 100,
-                    IntervalType = PM.BO.Enums.IntervalType.DistanceUndefinedRest,
-                    TargetPace = 130
-                },
-                new()
-                {
-                    Duration = 120,
-                    IntervalType = PM.BO.Enums.IntervalType.TimeUndefinedRest,
-                    TargetPace = 130
-                },
-                //new()
-                //{
-                //    Duration = 1000,
-                //    IntervalType = PM.BO.Enums.IntervalType.Distance,
-                //    SecondsOfRest = 0,
-                //    TargetPace = 100
-                //},
-                //new()
-                //{
-                //    Duration = 600,
-                //    IntervalType = PM.BO.Enums.IntervalType.Time,
-                //    SecondsOfRest = 120,
-                //    TargetPace = 100
-                //}
-            }; 
-            _pmService.SetVariableWorkout(_activeDevices.First(), intervals1);
-
+            // Establish a variable interval workout for distance and time with undefined rests
+            // NOTE: Always use variable workout intervals for any workout that includes undefined rests
+            //Interval[] intervals1 = new Interval[]
+            //{
+            //    new()
+            //    {
+            //        Duration = 100,
+            //        IntervalType = PM.BO.Enums.IntervalType.DistanceUndefinedRest,
+            //        TargetPace = 130
+            //    },
+            //    new()
+            //    {
+            //        Duration = 120,
+            //        IntervalType = PM.BO.Enums.IntervalType.TimeUndefinedRest,
+            //        TargetPace = 130
+            //    }
+            //};
+            //_pmService.SetVariableWorkout(_activeDevices.First(), intervals1);
 
             // Run forever
             do { } while (true);

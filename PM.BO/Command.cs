@@ -6,31 +6,58 @@ using System.Linq;
 
 namespace PM.BO
 {
-    public abstract class Command
+    public abstract class Command : ICommand
     {
+        public abstract string Name { get; }
+
         public abstract byte Code { get; }
 
         protected IEnumerable<uint>? Data { get; set; }
 
         public abstract PMCommandType CommandType { get; }
 
+        public bool IsShortCommand => CommandType == PMCommandType.Short;
+
+        public bool IsLongCommand => CommandType == PMCommandType.Long;
+
+        public virtual string Units { get; } = string.Empty;
+
+        public virtual string Resolution { get; } = string.Empty;
+
+        public abstract ushort TotalSize { get; }
+
+        public virtual uint? Wrapper { get; } = null;
+
+        public virtual IEnumerable<uint>? ParentTo { get; } = null;
+
         public ushort Size => (ushort) (Data?.Count() ?? 0);
 
         public abstract ushort? ResponseSize { get; }
 
-        public virtual void Write(ICommandWriter commandWriter)
+        public dynamic? Value { get; protected set; } = null;
+
+        public virtual uint[] GetBytes()
         {
-            commandWriter.WriteByte(Code);
+            List<uint> bytes = new();
+
+            bytes.Add(Code);
 
             if (Data != null && Data.Any())
             {
                 if (typeof(SetCommand).IsAssignableFrom(GetType()))
                 {
-                    commandWriter.WriteByte((uint)Data.Count());
+                    bytes.Add((uint)Data.Count());
                 }
 
-                commandWriter.WriteBytes(Data);
+                bytes.AddRange(Data);
             }
+
+            return bytes.ToArray();
+        }
+
+        public virtual void Write(ICommandWriter commandWriter)
+        {
+            commandWriter.WriteBytes(GetBytes());
         }
 
         public void Read(IResponseReader responseReader)

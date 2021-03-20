@@ -6,9 +6,9 @@ using System.Linq;
 
 namespace PM.BO
 {
-    public abstract class SetCommand : Command, ICommand
+    public abstract class SetCommand : Command
     {
-        public string Name
+        public override string Name
         {
             get
             {
@@ -30,19 +30,7 @@ namespace PM.BO
 
         public override ushort? ResponseSize => 0;
 
-        public virtual uint? ProprietaryWrapper => null;
-
-        public string? Units { get; }
-
-        public string? Resolution { get; }
-
-        public ushort? Order { get; set; }
-
-        public bool IsShortCommand => CommandType == PMCommandType.Short;
-
-        public bool IsLongCommand => CommandType == PMCommandType.Long;
-
-        public dynamic? Value { get; set; }
+        public override ushort TotalSize => (ushort)(Size + 2);
 
         public SetCommand()
         {

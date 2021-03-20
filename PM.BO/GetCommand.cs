@@ -1,14 +1,12 @@
 ﻿using PM.BO.Enums;
 using PM.BO.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace PM.BO
 {
-    public abstract class GetCommand : Command, ICommand
+    public abstract class GetCommand : Command
     {
-        public string Name { 
+        public override string Name { 
             get 
             {
                 const string prefix = "Get";
@@ -27,23 +25,10 @@ namespace PM.BO
             } 
         }
 
-        public virtual uint? ProprietaryWrapper => null;
-
         public ushort? RefreshRate { get; }
 
-        public string Units { get; } = string.Empty;
 
-        public string Resolution { get; } = string.Empty;
-
-        public ushort? Order { get; set; }
-
-        public bool IsShortCommand => CommandType == PMCommandType.Short;
-
-        public bool IsLongCommand => CommandType == PMCommandType.Long;
-
-        protected abstract IEnumerable<uint>? Data { get; }
-
-        public dynamic? Value { get; protected set; }
+        public override ushort TotalSize => (ushort)(Size + 1);
 
         public GetCommand(ushort? refreshRate)
         {

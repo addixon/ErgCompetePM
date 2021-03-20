@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) PM3Command.GET_FORCEPLOTDATA;
         public override ushort? ResponseSize => 33;
         
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_USERCFG1;
 
         public GetForcePlotDataCommand() : base(null)
         {

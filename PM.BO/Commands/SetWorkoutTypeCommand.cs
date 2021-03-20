@@ -10,7 +10,7 @@ namespace PM.BO.Commands
     public class SetWorkoutTypeCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_WORKOUTTYPE;
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_PMCFG;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetWorkoutTypeCommand(uint[] data) : base(data)
         {

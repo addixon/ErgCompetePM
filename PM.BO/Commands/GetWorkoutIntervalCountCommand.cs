@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override byte Code => (byte) PM3Command.GET_WORKOUTINTERVALCOUNT;
         public override ushort? ResponseSize => 1;
         
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_USERCFG1;
 
 
         public GetWorkoutIntervalCountCommand() : base(null)

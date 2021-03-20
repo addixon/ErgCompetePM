@@ -9,7 +9,7 @@ namespace PM.BO.Commands
         public override ushort? ResponseSize => 1;
         
         
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_USERCFG1;
         private const ushort _refreshRate = 100;
 
         public GetStrokeStateCommand() : base(_refreshRate)

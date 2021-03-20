@@ -1,6 +1,5 @@
 ﻿using PM.BO.Enums;
 using PM.BO.Interfaces;
-using System.Collections.Generic;
 
 namespace PM.BO.Commands
 {
@@ -8,11 +7,8 @@ namespace PM.BO.Commands
     {
         public override byte Code => (byte) PM3Command.GET_STROKESTATS;
         public override ushort? ResponseSize => 16;
-        
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
-        private const ushort _refreshRate = 2;
 
-        protected override IEnumerable<uint>? Data { get; }
+        private const ushort _refreshRate = 2;
 
         /// <summary>
         /// 

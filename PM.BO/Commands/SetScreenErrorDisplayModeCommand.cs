@@ -8,7 +8,7 @@ namespace PM.BO.Commands
     public class SetScreenErrorDisplayModeCommand : LongSetCommand
     {
         public override byte Code => (byte) PM3Command.SET_SCREENERRORMODE;
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
 
         public SetScreenErrorDisplayModeCommand(uint[] data) : base(data)
         {

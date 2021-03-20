@@ -4,6 +4,7 @@ using LibUsbDotNet;
 using LibUsbDotNet.LibUsb;
 using Microsoft.Extensions.Logging;
 using PM.BO;
+using PM.BO.Commands;
 using PM.BO.Comparers;
 using PM.BO.EventArguments;
 using PM.BO.Interfaces;
@@ -68,7 +69,7 @@ namespace BLL
 
         /// <inheritdoc />
         public event EventHandler? DeviceLost;
-        
+
         /// <summary>
         /// Static constructor
         /// </summary>
@@ -110,6 +111,7 @@ namespace BLL
             lock (_discoveryLock)
             {
                 UsbDeviceCollection? usbDeviceCollection = _context.List();
+                _context.SetDebugLevel(LibUsbDotNet.LogLevel.Debug);
 
                 // Filter out all but Concept2 Vendor
                 var discoveredDevices = usbDeviceCollection.Where(d => d.VendorId == VendorId);
@@ -214,38 +216,39 @@ namespace BLL
                     return;
                 }
 
-                // Generate the write buffer and write to PM
-                // TODO: Find a way to allow the CommandList to be passed directly
-                byte[] writeBuffer = commands.Buffer.Select(b => (byte)b).ToArray();
-
                 bool shouldRetry = false;
                 int retryCount = 0;
+                int currentFrameNumber = 0;
                 Error writeResult = Error.Other;
                 do
-                {
-                    UsbEndpointWriter writer = device.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
-                    try
-                    {
-                        int writeBufferSize = 12;
-                        writeResult = writer.Write(writeBuffer, 100, out writeBufferSize);
+                {        
+                    for (int frameNumber = currentFrameNumber; frameNumber < commands.TotalFrames;) 
+                    { 
+                        // Generate the write buffer and write to PM
+                        byte[] writeBuffer = commands.GetFrame(frameNumber).Select(b => (byte)b).ToArray();
+                        UsbEndpointWriter writer = device.OpenEndpointWriter(LibUsbDotNet.Main.WriteEndpointID.Ep02);
+                        try
+                        {
+                            writeResult = writer.Write(writeBuffer, 100, out int writeBufferSize);
 
-                        if (writeResult == Error.Io)
-                        {
-                            CloseAndOpen(device);
-                            shouldRetry = retryCount++ < 2;
-                        }
-                        else if (writeResult == Error.Success)
-                        {
+                            if (writeResult == Error.Io)
+                            {
+                                CloseAndOpen(device);
+                                shouldRetry = retryCount++ < 2;
+                                continue;
+                            }
+
                             shouldRetry = false;
+                            frameNumber++;
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(e, "Exception occurred during writing. Buffer: [{WriteBuffer}]", writeBuffer);
-                    }
-                    finally
-                    {
-                        _lastSends[location.Value] = DateTime.UtcNow;
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(e, "Exception occurred during writing. Buffer: [{WriteBuffer}]", writeBuffer);
+                        }
+                        finally
+                        {
+                            _lastSends[location.Value] = DateTime.UtcNow;
+                        }
                     }
                 } while (shouldRetry);
 
@@ -265,16 +268,22 @@ namespace BLL
                     try
                     {
                         readResult = reader.Read(readBuffer, 100, out int responseDataSize);
-
+                        
                         if (readResult == Error.Io)
                         {
                             CloseAndOpen(device);
                             shouldRetry = retryCount++ < 2;
+                            continue;
                         }
-                        else if (writeResult == Error.Success)
+
+                        if (commands.TotalFrames > 1)
                         {
-                            shouldRetry = false;
+                            // This is required if there was more than one packet.
+                            // TODO: Improve this so that results from each packet are read in.
+                            reader.ReadFlush();
                         }
+
+                        shouldRetry = false;
                     }
                     catch (Exception e)
                     {
@@ -289,7 +298,7 @@ namespace BLL
                     return;
                 }
 
-                IResponseReader responseReader = new ResponseReader(readBuffer.Select(b => (uint) b));
+                IResponseReader responseReader = new ResponseReader(readBuffer.Select(b => (uint)b));
                 bool responseReaderSuccess = commands.Read(responseReader);
 
                 if (!responseReaderSuccess)

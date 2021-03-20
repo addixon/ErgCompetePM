@@ -7,14 +7,10 @@ namespace PM.BO.Commands
     public class GetHeartBeatDataCommand: LongGetCommand
     {
         public override byte Code => (byte)PM3Command.GET_HEARTBEATDATA;
+        public override uint? Wrapper => (uint)CSAFECommand.SET_USERCFG1;
         public override ushort? ResponseSize => 33;
-        
-        public override uint? ProprietaryWrapper => (uint)CSAFECommand.SET_USERCFG1;
 
         public new string Resolution = "1 ms";
-
-        protected override IEnumerable<uint>? Data { get; }
-
 
         public GetHeartBeatDataCommand(ushort blockLengthInBytes) : base(null)
         {

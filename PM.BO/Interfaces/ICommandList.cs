@@ -5,14 +5,14 @@ namespace PM.BO.Interfaces
     public interface ICommandList : IList<ICommand>
     {
         /// <summary>
+        /// The total number of prepared frames
+        /// </summary>
+        int TotalFrames { get; }
+
+        /// <summary>
         /// Checks if the command list is in a state that can be sent
         /// </summary>
         bool CanSend { get; }
-
-        /// <summary>
-        /// The buffer of the inherent CommandWriter
-        /// </summary>
-        uint[] Buffer { get; }
 
         /// <summary>
         /// Resets and clears the command list
@@ -30,6 +30,13 @@ namespace PM.BO.Interfaces
         /// </summary>
         /// <param name="commands">The commands to add</param>
         void AddRange(IEnumerable<ICommand> commands);
+
+        /// <summary>
+        /// Gets a frame
+        /// </summary>
+        /// <param name="frameNumber">The frame number to get</param>
+        /// <returns>The bytes in the frame</returns>
+        uint[] GetFrame(int frameNumber);
 
         /// <summary>
         /// Prepares the list for communication

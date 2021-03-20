@@ -21,7 +21,7 @@ namespace BLL.Communication
         public int Position { get; protected set; }
 
         /// <inheritdoc/>
-        private int MaxSize { get; }
+        public int MaxSize { get; }
 
         /// <summary>
         /// The type of buffer
@@ -32,7 +32,7 @@ namespace BLL.Communication
         /// Constructor
         /// </summary>
         /// <param name="maxSize">The max size of the buffer</param>
-        public CommunicationBuffer(int maxSize = 256)
+        public CommunicationBuffer(int maxSize = 121)
         {
             MaxSize = maxSize;
             Position = 0;
@@ -52,7 +52,7 @@ namespace BLL.Communication
         }
 
         /// <inheritdoc/>
-        protected int PositionsRemaining()
+        public int PositionsRemaining()
         {
             return MaxSize - Position;
         }

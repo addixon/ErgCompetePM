@@ -55,7 +55,7 @@ namespace LibUsbDotNet
                 internal const string LibUsbNativeLibrary = "usb";
                 internal const CallingConvention LibUsbCallingConvention = CallingConvention.Cdecl;
 #elif true
-        internal const string LibUsbNativeLibrary = "libusb-1.0";
+        internal const string LibUsbNativeLibrary = "libusb-1.0.dll";
         internal const CallingConvention LibUsbCallingConvention = CallingConvention.StdCall;
         //internal const string LibUsbNativeLibrary = "libusb-1.0.so.0";
         //internal const CallingConvention LibUsbCallingConvention = CallingConvention.Cdecl;

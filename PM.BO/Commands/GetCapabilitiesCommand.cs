@@ -10,10 +10,6 @@ namespace PM.BO.Commands
         public override byte Code => (byte) CSAFECommand.GET_CAPS;
         public override ushort? ResponseSize { get; } = 0;
         
-        
-        protected override IEnumerable<uint>? Data { get; }
-
-
         public GetCapabilitiesCommand(byte capabilityCode) : base(null)
         {
             Data = new uint[] { capabilityCode };

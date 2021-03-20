@@ -308,7 +308,7 @@ namespace BLL
                     return null;
                 }
 
-                commands.Add(new SetIntervalWorkoutCountCommand(intervalNumber));
+                commands.Add(new SetWorkoutIntervalCountCommand(intervalNumber));
 
                 if (intervalNumber == 0)
                 {
