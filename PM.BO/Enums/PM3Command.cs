@@ -15,6 +15,7 @@
         GET_RESTTIME = 0xCF,
         GET_DISPLAYTYPE = 0x8A,
         GET_DISPLAYUNITS = 0x8B,
+        GET_OPERATIONALSTATE = 0x8F,
         CONFIGURE_WORKOUT = 0x14,
 
         // PM3-Specific Long Commands

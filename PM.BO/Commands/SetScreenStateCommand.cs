@@ -31,12 +31,12 @@ namespace PM.BO.Commands
                 throw new ArgumentException("Screen type must not be null", nameof(screenState));
             }
 
-            if (screenState.ScreenValueWorkout == null)
+            if (screenState.ScreenValue == null)
             {
-                throw new ArgumentException("Screen Value Workout must not be null", nameof(screenState));
+                throw new ArgumentException("Screen Value must not be null", nameof(screenState));
             }
 
-            Data = new uint[] { (uint)screenState.ScreenType, (uint)screenState.ScreenValueWorkout };
+            Data = new uint[] { (uint)screenState.ScreenType, screenState.ScreenValue.Value };
         }
 
         public SetScreenStateCommand(ScreenType? screenType, ScreenValueWorkout? screenValueWorkout)

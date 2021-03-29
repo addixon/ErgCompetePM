@@ -77,6 +77,13 @@ namespace PM.BO.Interfaces
         void TerminateWorkout(string serialNumber);
 
         /// <summary>
+        /// Determines if the PM is in a state where it is ready to be programmed
+        /// </summary>
+        /// <param name="serialNumber">Serial number of the device</param>
+        /// <returns>True if it is ready; false otherwise</returns>
+        bool IsReadyToProgramWorkout(string serialNumber);
+
+        /// <summary>
         /// Fires events each time a new device has been found.
         /// </summary>
         event EventHandler? DeviceFound;

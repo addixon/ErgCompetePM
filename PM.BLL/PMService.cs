@@ -88,6 +88,51 @@ namespace BLL
         }
 
         /// <inheritdoc />
+        public bool IsReadyToProgramWorkout(string serialNumber)
+        {
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                _logger.LogError("Serial number must be defined when determining state.");
+                return false;
+            }
+
+            GetOperationalStateCommand operationalStateCommand = new();
+            GetWorkoutStateCommand workoutStateCommand = new();
+
+            ICommandList commandList = _commandListFactory.Create();
+
+            commandList.Add(operationalStateCommand);
+            commandList.Add(workoutStateCommand);
+            commandList.Prepare();
+
+            _pmCommunicator.Send(serialNumber, commandList);
+
+            OperationalState? operationalState = operationalStateCommand.Value;
+
+            if (!operationalState.HasValue)
+            {
+                _logger.LogWarning("Operational state is unknown.");
+                return false;
+            }
+
+            if (operationalState.Value != OperationalState.Ready && 
+                operationalState.Value != OperationalState.Workout)
+            {
+                return false;
+            }
+
+            WorkoutState? workoutState = workoutStateCommand.Value;
+
+            if (!workoutState.HasValue)
+            {
+                _logger.LogWarning("Workout state is unknown.");
+                return false;
+            }
+
+            return workoutState.Value == WorkoutState.WaitingToBegin;
+        }
+
+        /// <inheritdoc />
         public void StartAutoDiscovery(int millisecondsBetweenDiscovery = 100)
         {
             _pmCommunicator.StartAutoDiscovery(millisecondsBetweenDiscovery);
