@@ -1,8 +1,9 @@
 ﻿using PM.BO.Enums;
+using PM.BO.Interfaces;
 
 namespace PM.BO
 {
-    public class Interval
+    public class Interval : IInterval
     {
         /// <summary>
         /// Workout type

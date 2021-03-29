@@ -318,14 +318,18 @@ namespace BLL.Communication
                 // if there are commands after this one
                 if (commandIndex < Count)
                 {
+                    Dictionary<byte, int> occurrences = new();
                     parentCommandsFound++;
                     ICommand childCommand;
                     int targetIndex = commandIndex;
                     while (targetIndex < Count && parentTo.Contains((childCommand = this[targetIndex]).Code))
                     {
-                        if (parentCommandsFound > 1 && this[targetIndex].Code == (byte)PM3Command.SET_WORKOUTTYPE)
+                        // Set occurrences per code
+                        occurrences[this[targetIndex].Code] = occurrences.ContainsKey(this[targetIndex].Code) ? occurrences[this[targetIndex].Code] + 1 : 1;
+
+                        if (parentCommandsFound > 1 && occurrences[this[targetIndex].Code] > this[targetIndex].MaximumOccurencesInParent)
                         {
-                            // Special case where WorkoutType would exist outside an interval
+                            // Special case where WorkoutType should exist outside an interval, or any other situation where it should be removed from parent
                             break;
                         }
 

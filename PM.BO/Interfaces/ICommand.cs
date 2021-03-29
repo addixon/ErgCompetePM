@@ -17,6 +17,8 @@ namespace PM.BO.Interfaces
 
         IEnumerable<uint>? ParentTo { get; }
 
+        int? MaximumOccurencesInParent { get; }
+
         ushort? ResponseSize { get; }
 
         bool IsShortCommand { get; }

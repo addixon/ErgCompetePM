@@ -178,8 +178,35 @@ namespace BLL
 
         #region Workouts
         /// <inheritdoc />
+        public void SetWorkout(string serialNumber, IWorkout workout)
+        {
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                _logger.LogError("Serial number must not be null. No workout has been set.");
+                return;
+            }
+
+            if (workout == null)
+            {
+                _logger.LogError("Workout must not be null. No workout has been set.");
+                return;
+            }
+
+            // Determine which type of workout based on intervals defined and set it
+
+
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
         public void SetJustRowWorkout(string serialNumber, bool splits)
         {
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                _logger.LogError("Serial number must not be null. No workout has been set.");
+                return;
+            }
+
             IEnumerable<ICommand> commands = BuildJustRowWorkout(splits);
 
             ICommandList commandList = _commandListFactory.Create(commands);
@@ -190,6 +217,12 @@ namespace BLL
         /// <inheritdoc />
         public void SetFixedWorkout(string serialNumber, Interval interval)
         {
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                _logger.LogError("Serial number must not be null. No workout has been set.");
+                return;
+            }
+
             if (interval == null)
             {
                 _logger.LogError("Interval must be defined when setting a fixed workout. No workout has been set.");
@@ -209,7 +242,7 @@ namespace BLL
                 case WorkoutType.FixedWattMinuteWithSplits:
                     break;
                 default:
-                    _logger.LogError("Only fixed interval workout types can be provided when setting a fixed workout. Now workout has been set.");
+                    _logger.LogError("Only fixed interval workout types with defined rest can be provided when setting a fixed workout. Now workout has been set.");
                     return;
             }
 
@@ -229,6 +262,12 @@ namespace BLL
         /// <inheritdoc />
         public void SetVariableWorkout(string serialNumber, IEnumerable<Interval> intervals)
         {
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                _logger.LogError("Serial number must not be null. No workout has been set.");
+                return;
+            }
+
             if (intervals == null)
             {
                 _logger.LogError("Intervals must be defined. No workout has been set.");

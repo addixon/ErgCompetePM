@@ -11,6 +11,7 @@ namespace PM.BO.Commands
     {
         public override byte Code => (byte) PM3Command.SET_WORKOUTTYPE;
         public override uint? Wrapper => (uint)CSAFECommand.SET_PMCFG;
+        public override int? MaximumOccurrenceInParent => 1;
 
         public SetWorkoutTypeCommand(uint[] data) : base(data)
         {
