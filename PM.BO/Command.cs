@@ -30,6 +30,8 @@ namespace PM.BO
 
         public virtual IEnumerable<uint>? ParentTo { get; } = null;
 
+        public virtual int? MaximumOccurrenceInParent { get; } = null;
+
         public ushort Size => (ushort) (Data?.Count() ?? 0);
 
         public abstract ushort? ResponseSize { get; }

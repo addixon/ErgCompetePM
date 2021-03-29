@@ -47,6 +47,13 @@ namespace PM.BO.Interfaces
         void StopAutoDiscovery();
 
         /// <summary>
+        /// Sets a workout based on the types of intervals found in the workout parameter
+        /// </summary>
+        /// <param name="serialNumber">Serial number of the device</param>
+        /// <param name="workout">The workout containing the intervals</param>
+        void SetWorkout(string serialNumber, IWorkout workout);
+
+        /// <summary>
         /// Sets a Just Row workout
         /// </summary>
         /// <param name="serialNumber">Serial number of the device</param>

@@ -223,7 +223,7 @@ namespace ErgCompetePM
                       Data = pollArgs.Data ?? new PMData()
                   };
 
-                  await _hubConnection.InvokeAsync(nameof(ErgHub.SendStatisticsToHub), pm).ConfigureAwait(false);
+                  await _hubConnection.InvokeAsync(nameof(ErgHub.BroadcastWorkoutData), pm).ConfigureAwait(false);
               });
         }
 
