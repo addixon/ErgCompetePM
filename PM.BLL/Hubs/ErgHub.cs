@@ -34,6 +34,7 @@ namespace BLL.Hubs
 
         #region Hub To Erg
         // TODO: Once an erg has been established with the server (using an ititiating hub call, serial number shouldn't be needed for each communication because the channel should be open and unique
+        // TODO: Return intentional success/failure on every communication with the Erg for reporting
         public async Task DefineWorkout(string serialNumber, IWorkout workout)
         {
             if (string.IsNullOrWhiteSpace(serialNumber))
@@ -48,8 +49,18 @@ namespace BLL.Hubs
                 return;
             }
 
-            // Send the workout
-            _pmService.SetWorkout(serialNumber, workout);
+            bool workoutSet = false;
+            if (_pmService.IsReadyToProgramWorkout(serialNumber)) 
+            { 
+                // Send the workout
+                _pmService.SetWorkout(serialNumber, workout);
+                workoutSet = true;
+            }
+
+            if (!workoutSet)
+            {
+                // Send a failure report back to the server
+            }
         }
         #endregion
 
